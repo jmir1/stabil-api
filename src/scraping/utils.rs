@@ -5,6 +5,7 @@ pub fn _parse_document(text: String) -> scraper::Html {
 pub trait Select {
     fn select_first(&self, selection_string: &str) -> scraper::ElementRef;
     fn select_all(&self, selection_string: &str) -> Vec<scraper::ElementRef>;
+    fn all_text(&self) -> Vec<String>;
 }
 
 impl Select for scraper::Html {
@@ -21,6 +22,14 @@ impl Select for scraper::Html {
         }
         return vec;
     }
+
+    fn all_text(&self) -> Vec<String> {
+        let mut vec = vec![];
+        for text in self.root_element().text() {
+            vec.push(text.to_string());
+        }
+        vec
+    }
 }
 
 impl Select for scraper::ElementRef<'_> {
@@ -36,6 +45,14 @@ impl Select for scraper::ElementRef<'_> {
             vec.push(element);
         }
         return vec;
+    }
+
+    fn all_text(&self) -> Vec<String> {
+        let mut vec = vec![];
+        for text in self.text() {
+            vec.push(text.to_string());
+        }
+        vec
     }
 }
 

@@ -1,10 +1,13 @@
-use crate::scraping::{utils::Select, models::ApiResult};
+use std::ops::Add;
 
+use crate::scraping::{utils::Select, models::{ApiResult, Session, ApiResponse}};
+
+#[rocket_okapi::openapi(tag = "Receive a session_token for accessing the user's logged in area.")]
 #[post("/session_token", data = "<login_data>")]
 pub async fn route(
     login_data: rocket::form::Form<LoginData>,
     client: &rocket::State<reqwest::Client>,
-) -> String {
+) -> ApiResponse<Session> {
     let username = login_data.username.to_owned();
     let password = login_data.password.to_owned();
 
@@ -32,18 +35,28 @@ pub async fn route(
         .text("csrf", csrf)
         .text("processLogin", "Anmelden");
 
+    let expiry = chrono::Utc::now().add(chrono::Duration::hours(1)).timestamp(); // The session expires 1 hour from now.
     let request = client
     .post("https://katalogplus.sub.uni-hamburg.de/vufind/MyResearch/Home?layout=lightbox&lbreferer=https%3A%2F%2Fkatalogplus.sub.uni-hamburg.de%2Fvufind%2FMyResearch%2FUserLogin")
     .multipart(form_body)
-        .header("cookie", format!("VUFIND_SESSION={session_token}"));
+    .header("cookie", format!("VUFIND_SESSION={session_token}"));
 
     let status = request.send().await.unwrap().status().as_u16();
     let success = status == 205;
-    let result = ApiResult { success, data: session_token, msg: String::new() };
-    serde_json::to_string(&result).unwrap()
+    let (session, status, msg) = if success {
+        (Session { session_token, expiry }, rocket::http::Status::Ok.code, String::new())
+    } else {
+        (
+            Session { session_token: String::new(), expiry: 0 },
+            rocket::http::Status::Unauthorized.code,
+            "Login details seem to be incorrect.".to_string(),
+        )
+    };
+    let result = ApiResult { success, data: session, msg };
+    ApiResponse { status, result }
 }
 
-#[derive(FromForm)]
+#[derive(FromForm, serde::Serialize, rocket_okapi::JsonSchema)]
 pub struct LoginData {
     username: String,
     password: String,
@@ -60,4 +73,16 @@ fn get_token_from_headers(headers: reqwest::header::HeaderMap) -> String {
     let token_start = session_cookie.find("VUFIND_SESSION=").unwrap() + 15; // + "VUFIND_SESSION=".len();
     let token_end = session_cookie.find(';').unwrap_or(session_cookie.len());
     session_cookie[token_start..token_end].to_string()
+}
+
+#[rocket_okapi::openapi(skip)]
+#[post("/session_token", rank = 0)]
+pub fn default_route() -> ApiResponse<Session> {
+    let msg = "You need to pass the username and password in the form body.".to_string();
+    let result = ApiResult {
+        success: false,
+        data: Session { session_token: String::new(), expiry: -1 },
+        msg,
+    };
+    ApiResponse { status: rocket::http::Status::BadRequest.code, result }
 }
