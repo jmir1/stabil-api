@@ -1,16 +1,8 @@
 #[macro_use]
 extern crate rocket;
 
-mod routes {
-    pub mod get_index;
-    pub mod get_loans;
-    pub mod post_session_token;
-}
-
-mod scraping {
-    pub mod models;
-    pub mod utils;
-}
+mod routes;
+mod scraping;
 
 #[launch]
 fn rocket() -> _ {
