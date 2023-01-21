@@ -25,21 +25,9 @@ fn rocket() -> _ {
             ],
         )
         .mount(
-            "/rapidoc/",
-            rocket_okapi::rapidoc::make_rapidoc(&rocket_okapi::rapidoc::RapiDocConfig {
-                general: rocket_okapi::rapidoc::GeneralConfig {
-                    spec_urls: vec![rocket_okapi::settings::UrlObject::new(
-                        "General",
-                        "../openapi.json",
-                    )],
-                    ..Default::default()
-                },
-                hide_show: rocket_okapi::rapidoc::HideShowConfig {
-                    allow_authentication: false,
-                    allow_spec_url_load: false,
-                    allow_spec_file_load: false,
-                    ..Default::default()
-                },
+            "/swagger-ui/",
+            rocket_okapi::swagger_ui::make_swagger_ui(&rocket_okapi::swagger_ui::SwaggerUIConfig {
+                url: "../openapi.json".to_owned(),
                 ..Default::default()
             }),
         )
