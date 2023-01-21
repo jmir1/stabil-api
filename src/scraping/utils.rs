@@ -1,5 +1,5 @@
 pub fn _parse_document(text: String) -> scraper::Html {
-    scraper::Html::parse_document(&text).to_owned()
+    scraper::Html::parse_document(&text)
 }
 
 pub trait Select {
@@ -20,7 +20,7 @@ impl Select for scraper::Html {
         for element in self.select(&selector) {
             vec.push(element);
         }
-        return vec;
+        vec
     }
 
     fn all_text(&self) -> Vec<String> {
@@ -44,7 +44,7 @@ impl Select for scraper::ElementRef<'_> {
         for element in self.select(&selector) {
             vec.push(element);
         }
-        return vec;
+        vec
     }
 
     fn all_text(&self) -> Vec<String> {
@@ -57,5 +57,5 @@ impl Select for scraper::ElementRef<'_> {
 }
 
 pub fn is_logged_in(document: &scraper::Html) -> bool {
-    document.select_all("body.template-name-login").len() == 0
+    document.select_all("body.template-name-login").is_empty()
 }

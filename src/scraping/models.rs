@@ -42,7 +42,9 @@ pub struct ApiResponse<T: rocket_okapi::JsonSchema> {
     pub result: ApiResult<T>,
 }
 
-impl<'r, T: serde::Serialize + rocket_okapi::JsonSchema> rocket::response::Responder<'r, 'static> for ApiResponse<T> {
+impl<'r, T: serde::Serialize + rocket_okapi::JsonSchema> rocket::response::Responder<'r, 'static>
+    for ApiResponse<T>
+{
     fn respond_to(self, req: &'r rocket::Request<'_>) -> rocket::response::Result<'static> {
         let string = serde_json::to_string(&self.result).unwrap();
         rocket::Response::build_from(string.respond_to(req)?)
@@ -52,12 +54,16 @@ impl<'r, T: serde::Serialize + rocket_okapi::JsonSchema> rocket::response::Respo
     }
 }
 
-impl<T: serde::Serialize + rocket_okapi::JsonSchema> rocket_okapi::response::OpenApiResponderInner for ApiResponse<T> {
-    fn responses(gen: &mut rocket_okapi::gen::OpenApiGenerator) -> rocket_okapi::Result<rocket_okapi::okapi::openapi3::Responses> {
+impl<T: serde::Serialize + rocket_okapi::JsonSchema> rocket_okapi::response::OpenApiResponderInner
+    for ApiResponse<T>
+{
+    fn responses(
+        gen: &mut rocket_okapi::gen::OpenApiGenerator,
+    ) -> rocket_okapi::Result<rocket_okapi::okapi::openapi3::Responses> {
         let mut responses = rocket_okapi::okapi::openapi3::Responses::default();
         let schema = gen.json_schema::<ApiResult<T>>();
         rocket_okapi::util::add_schema_response(&mut responses, 200, "application/json", schema)?;
-        
+
         Ok(responses)
     }
 }

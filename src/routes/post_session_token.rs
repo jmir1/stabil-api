@@ -1,6 +1,9 @@
 use std::ops::Add;
 
-use crate::scraping::{utils::Select, models::{ApiResult, Session, ApiResponse}};
+use crate::scraping::{
+    models::{ApiResponse, ApiResult, Session},
+    utils::Select,
+};
 
 #[rocket_okapi::openapi(tag = "Receive a session_token for accessing the user's logged in area.")]
 #[post("/session_token", data = "<login_data>")]
@@ -35,7 +38,9 @@ pub async fn route(
         .text("csrf", csrf)
         .text("processLogin", "Anmelden");
 
-    let expiry = chrono::Utc::now().add(chrono::Duration::hours(1)).timestamp(); // The session expires 1 hour from now.
+    let expiry = chrono::Utc::now()
+        .add(chrono::Duration::hours(1))
+        .timestamp(); // The session expires 1 hour from now.
     let request = client
     .post("https://katalogplus.sub.uni-hamburg.de/vufind/MyResearch/Home?layout=lightbox&lbreferer=https%3A%2F%2Fkatalogplus.sub.uni-hamburg.de%2Fvufind%2FMyResearch%2FUserLogin")
     .multipart(form_body)
@@ -44,15 +49,29 @@ pub async fn route(
     let status = request.send().await.unwrap().status().as_u16();
     let success = status == 205;
     let (session, status, msg) = if success {
-        (Session { session_token, expiry }, rocket::http::Status::Ok.code, String::new())
+        (
+            Session {
+                session_token,
+                expiry,
+            },
+            rocket::http::Status::Ok.code,
+            String::new(),
+        )
     } else {
         (
-            Session { session_token: String::new(), expiry: 0 },
+            Session {
+                session_token: String::new(),
+                expiry: 0,
+            },
             rocket::http::Status::Unauthorized.code,
             "Login details seem to be incorrect.".to_string(),
         )
     };
-    let result = ApiResult { success, data: session, msg };
+    let result = ApiResult {
+        success,
+        data: session,
+        msg,
+    };
     ApiResponse { status, result }
 }
 
@@ -81,8 +100,14 @@ pub fn default_route() -> ApiResponse<Session> {
     let msg = "You need to pass the username and password in the form body.".to_string();
     let result = ApiResult {
         success: false,
-        data: Session { session_token: String::new(), expiry: -1 },
+        data: Session {
+            session_token: String::new(),
+            expiry: -1,
+        },
         msg,
     };
-    ApiResponse { status: rocket::http::Status::BadRequest.code, result }
+    ApiResponse {
+        status: rocket::http::Status::BadRequest.code,
+        result,
+    }
 }

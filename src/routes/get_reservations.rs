@@ -1,11 +1,14 @@
 use crate::scraping::{
-    models::{ApiResult, Reservation, Medium, ApiResponse},
+    models::{ApiResponse, ApiResult, Medium, Reservation},
     utils::{is_logged_in, Select},
 };
 
 #[rocket_okapi::openapi(tag = "Get a user's reserved items.")]
 #[get("/reservations?<session_token>")]
-pub async fn route(session_token: &str, client: &rocket::State<reqwest::Client>) -> ApiResponse<Vec<Reservation>> {
+pub async fn route(
+    session_token: &str,
+    client: &rocket::State<reqwest::Client>,
+) -> ApiResponse<Vec<Reservation>> {
     let response_text = client
         .get("https://katalogplus.sub.uni-hamburg.de/vufind/Holds/List")
         .header("cookie", format!("VUFIND_SESSION={session_token}"))
@@ -22,29 +25,46 @@ pub async fn route(session_token: &str, client: &rocket::State<reqwest::Client>)
             data: vec![],
             msg: "session_token is invalid.".to_string(),
         };
-        return ApiResponse { status: rocket::http::Status::Unauthorized.code, result };
+        return ApiResponse {
+            status: rocket::http::Status::Unauthorized.code,
+            result,
+        };
     }
 
     let mut reservations: Vec<Reservation> = vec![];
     for reservation in document.select_all("tr.myresearch-result") {
         let id = get_medium_id(reservation.value().attr("id").unwrap());
-        let title = reservation.select_first("td[data-th=Titel] > span.title").text().next().unwrap().to_string();
+        let title = reservation
+            .select_first("td[data-th=Titel] > span.title")
+            .text()
+            .next()
+            .unwrap()
+            .to_string();
         let mut location = vec![];
-        for loc in reservation.select_first("td[data-th=\"Standort (Printmedien)\"").all_text() {
+        for loc in reservation
+            .select_first("td[data-th=\"Standort (Printmedien)\"")
+            .all_text()
+        {
             let trimmed = loc.trim();
-            if trimmed.len() > 0 {
+            if !trimmed.is_empty() {
                 location.push(trimmed.to_string());
             }
         }
         let location = location.join(" ");
         let signature = get_column_value(reservation, "Signatur");
         let due_date = get_column_value(reservation, "Rückgabedatum");
-        let cancel_id = reservation.select_first("td > label > input[name=\"cancelSelectedIDS[]\"]")
+        let cancel_id = reservation
+            .select_first("td > label > input[name=\"cancelSelectedIDS[]\"]")
             .value()
             .attr("value")
             .unwrap()
             .to_string();
-        let medium = Medium { id, title, signature, location };
+        let medium = Medium {
+            id,
+            title,
+            signature,
+            location,
+        };
 
         reservations.push(Reservation {
             medium,
@@ -57,11 +77,15 @@ pub async fn route(session_token: &str, client: &rocket::State<reqwest::Client>)
         data: reservations,
         msg: String::new(),
     };
-    ApiResponse { status: rocket::http::Status::Ok.code, result }
+    ApiResponse {
+        status: rocket::http::Status::Ok.code,
+        result,
+    }
 }
 
 fn get_column_value(reservation: scraper::ElementRef, column: &str) -> String {
-    reservation.select_first(&format!("td[data-th={column}]"))
+    reservation
+        .select_first(&format!("td[data-th={column}]"))
         .text()
         .next()
         .unwrap()
@@ -84,5 +108,8 @@ pub fn default_route() -> ApiResponse<Vec<Reservation>> {
         data: vec![],
         msg,
     };
-    ApiResponse { status: rocket::http::Status::BadRequest.code, result }
+    ApiResponse {
+        status: rocket::http::Status::BadRequest.code,
+        result,
+    }
 }

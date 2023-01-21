@@ -38,7 +38,7 @@ pub async fn route(
         let mut location = vec![];
         for loc in loan.select_first("td[data-th=Titel").all_text() {
             let trimmed = loc.trim();
-            if trimmed.len() > 0 {
+            if !trimmed.is_empty() {
                 location.push(trimmed.to_string());
             }
         }
@@ -52,9 +52,8 @@ pub async fn route(
             .unwrap();
         let warnings = get_column_value(loan, "Mahnungen").parse::<i8>().unwrap();
         let can_be_renewed = loan
-            .select_all(&format!("td[data-th=Selection] > input[disabled]"))
-            .len()
-            == 0;
+            .select_all("td[data-th=Selection] > input[disabled]")
+            .is_empty();
         let renew_id = if can_be_renewed {
             loan.select_first("td.checkbox > label > input[name=\"renewSelectedIDS[]\"]")
                 .value()

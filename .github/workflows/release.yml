@@ -1,0 +1,45 @@
+on:
+  push:
+    tags:
+      - '*'
+
+name: Release
+
+jobs:
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+      - name: Install rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - name: Test app
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+
+  redeploy:
+    name: Redeploy app
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - name: Restart service via SSH
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script_stop: true
+          script: |
+            cd stabil-api
+            git fetch --all
+            git reset --hard origin/main
+            git pull
+            $HOME/.cargo/bin/cargo install --path .
+            sudo systemctl restart stabil-api
+            sudo systemctl status stabil-api
