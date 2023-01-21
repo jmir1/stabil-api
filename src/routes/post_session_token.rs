@@ -61,7 +61,7 @@ pub async fn route(
         (
             Session {
                 session_token: String::new(),
-                expiry: 0,
+                expiry: -1,
             },
             rocket::http::Status::Unauthorized.code,
             "Login details seem to be incorrect.".to_string(),

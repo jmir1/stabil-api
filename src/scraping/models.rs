@@ -1,10 +1,10 @@
-#[derive(serde::Serialize, rocket_okapi::JsonSchema)]
+#[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
 pub struct Session {
     pub session_token: String,
     pub expiry: i64,
 }
 
-#[derive(serde::Serialize, rocket_okapi::JsonSchema)]
+#[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
 pub struct Medium {
     pub id: String,
     pub title: String,
@@ -12,7 +12,7 @@ pub struct Medium {
     pub location: Location,
 }
 
-#[derive(serde::Serialize, rocket_okapi::JsonSchema)]
+#[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
 pub struct CheckedOut {
     pub medium: Medium,
     pub due_date: String,
@@ -22,14 +22,14 @@ pub struct CheckedOut {
     pub renew_id: String,
 }
 
-#[derive(serde::Serialize, rocket_okapi::JsonSchema)]
+#[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
 pub struct Reservation {
     pub medium: Medium,
     pub due_date: String,
     pub cancel_id: String,
 }
 
-#[derive(serde::Serialize, rocket_okapi::JsonSchema)]
+#[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
 pub struct Library {
     pub id: i32,
     pub name: String,
@@ -44,20 +44,20 @@ pub fn to_library(str: &str) -> Library {
     }
 }
 
-#[derive(serde::Serialize, rocket_okapi::JsonSchema)]
+#[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
 pub struct Location {
     pub library: Library,
     pub section: String,
 }
 
-#[derive(serde::Serialize, rocket_okapi::JsonSchema)]
+#[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
 pub struct ApiResult<T: rocket_okapi::JsonSchema> {
     pub success: bool,
     pub data: T,
     pub msg: String,
 }
 
-#[derive(serde::Serialize, rocket_okapi::JsonSchema)]
+#[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
 pub struct ApiResponse<T: rocket_okapi::JsonSchema> {
     pub status: u16,
     pub result: ApiResult<T>,

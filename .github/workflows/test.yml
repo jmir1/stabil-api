@@ -37,6 +37,9 @@ jobs:
           toolchain: stable
           override: true
       - name: Test app
+        env:
+          STABIL_API_TEST_USERNAME: ${{ secrets.STABIL_API_TEST_USERNAME }}
+          STABIL_API_TEST_PASSWORD: ${{ secrets.STABIL_API_TEST_PASSWORD }}
         uses: actions-rs/cargo@v1
         with:
           command: test

@@ -3,6 +3,9 @@ extern crate rocket;
 #[macro_use]
 extern crate rocket_okapi;
 
+#[cfg(test)]
+mod tests;
+
 mod routes;
 mod scraping;
 
