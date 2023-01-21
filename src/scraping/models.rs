@@ -9,7 +9,7 @@ pub struct Medium {
     pub id: String,
     pub title: String,
     pub signature: String,
-    pub location: String,
+    pub location: Location,
 }
 
 #[derive(serde::Serialize, rocket_okapi::JsonSchema)]
@@ -27,6 +27,27 @@ pub struct Reservation {
     pub medium: Medium,
     pub due_date: String,
     pub cancel_id: String,
+}
+
+#[derive(serde::Serialize, rocket_okapi::JsonSchema)]
+pub struct Library {
+    pub id: i32,
+    pub name: String,
+}
+
+pub fn to_library(str: &str) -> Library {
+    let name = str.to_string();
+    match str {
+        "Staats- und Universitätsbibliothek" => Library { id: 2, name },
+        "FB Physik" => Library { id: 267, name },
+        &_ => Library { id: 0, name },
+    }
+}
+
+#[derive(serde::Serialize, rocket_okapi::JsonSchema)]
+pub struct Location {
+    pub library: Library,
+    pub section: String,
 }
 
 #[derive(serde::Serialize, rocket_okapi::JsonSchema)]

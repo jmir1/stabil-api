@@ -1,5 +1,5 @@
 use crate::scraping::{
-    models::{ApiResponse, ApiResult, Medium, Reservation},
+    models::{to_library, ApiResponse, ApiResult, Location, Medium, Reservation},
     utils::{is_logged_in, Select},
 };
 
@@ -40,17 +40,6 @@ pub async fn route(
             .next()
             .unwrap()
             .to_string();
-        let mut location = vec![];
-        for loc in reservation
-            .select_first("td[data-th=\"Standort (Printmedien)\"")
-            .all_text()
-        {
-            let trimmed = loc.trim();
-            if !trimmed.is_empty() {
-                location.push(trimmed.to_string());
-            }
-        }
-        let location = location.join(" ");
         let signature = get_column_value(reservation, "Signatur");
         let due_date = get_column_value(reservation, "Rückgabedatum");
         let cancel_id = reservation
@@ -59,11 +48,25 @@ pub async fn route(
             .attr("value")
             .unwrap()
             .to_string();
+        let library = to_library(
+            reservation
+                .select_first("td[data-th=\"Standort (Printmedien)\"] > strong")
+                .text()
+                .next()
+                .unwrap(),
+        );
+        let section = reservation
+            .select_first("td[data-th=\"Standort (Printmedien)\"]")
+            .text()
+            .map(|x| x.trim())
+            .filter(|&x| !x.is_empty())
+            .collect::<Vec<&str>>()[1..]
+            .join(" ");
         let medium = Medium {
             id,
             title,
             signature,
-            location,
+            location: Location { library, section },
         };
 
         reservations.push(Reservation {

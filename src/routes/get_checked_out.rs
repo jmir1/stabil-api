@@ -1,5 +1,5 @@
 use crate::scraping::{
-    models::{ApiResponse, ApiResult, CheckedOut, Medium},
+    models::{to_library, ApiResponse, ApiResult, CheckedOut, Location, Medium},
     utils::{is_logged_in, Select},
 };
 
@@ -35,16 +35,27 @@ pub async fn route(
     for loan in document.select_all("tr.myresearch-result") {
         let id = get_medium_id(loan.value().attr("id").unwrap());
         let title = get_column_value(loan, "Titel");
-        let mut location = vec![];
-        for loc in loan.select_first("td[data-th=Titel").all_text() {
-            let trimmed = loc.trim();
-            if !trimmed.is_empty() {
-                location.push(trimmed.to_string());
-            }
-        }
-        let idx = location.iter().position(|x| x == "Ausleihstelle:").unwrap() + 1;
-        location.drain(0..idx);
-        let location = location.join(" ");
+        let library_string = loan
+            .select_all("td[data-th=Titel] > strong")
+            .get(1)
+            .unwrap()
+            .text()
+            .next()
+            .unwrap_or("")
+            .trim();
+        let library = to_library(library_string);
+        let section: Vec<&str> = loan
+            .select_first("td[data-th=Titel]")
+            .text()
+            .map(|x| x.trim())
+            .filter(|&x| !x.is_empty())
+            .collect();
+        let section_idx = section
+            .iter()
+            .position(|&x| x == "Ausleihstelle:")
+            .unwrap_or(0)
+            + 2;
+        let section = section[section_idx..].join(" ");
         let signature = get_column_value(loan, "Signatur");
         let due_date = get_column_value(loan, "Rückgabe");
         let renewals = get_column_value(loan, "Verlängerungen")
@@ -63,6 +74,7 @@ pub async fn route(
         } else {
             String::new()
         };
+        let location = Location { library, section };
         let medium = Medium {
             id,
             title,
