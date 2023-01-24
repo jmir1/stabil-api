@@ -1,6 +1,11 @@
 # stabil-api
 
 An API for interacting with the services of Hamburg University's library system.
+The API is publically accessible at https://api.stabilapp.de/.
+
+## Documentation
+
+A documentation UI can be found [here](https://api.stabilapp.de/swagger-ui/index.html). There is also an OpenAPI 3.0 file at https://api.stabilapp.de/openapi.json. Please note that this project is work-in-progress, so everything is subject to change.
 
 ## License
 
