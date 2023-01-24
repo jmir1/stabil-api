@@ -1,5 +1,5 @@
 use crate::scraping::{
-    models::{to_library, ApiResponse, ApiResult, CheckedOut, Location, Medium},
+    models::{to_library, to_status, ApiResponse, ApiResult, CheckedOut, Location, Medium},
     utils::{is_logged_in, Select},
 };
 
@@ -35,6 +35,13 @@ pub async fn route(
     for loan in document.select_all("tr.myresearch-result") {
         let id = get_medium_id(loan.value().attr("id").unwrap());
         let title = get_column_value(loan, "Titel");
+        let status_string = loan
+            .select_all("td[data-th=Titel] > div.alert-danger")
+            .iter()
+            .map(|x| x.text().next().unwrap_or(""))
+            .next()
+            .unwrap_or("");
+        let status = to_status(status_string);
         let library_string = loan
             .select_all("td[data-th=Titel] > strong")
             .get(1)
@@ -61,11 +68,18 @@ pub async fn route(
         let renewals = get_column_value(loan, "Verlängerungen")
             .parse::<i8>()
             .unwrap();
+        let renewal_msg = loan
+            .select_all("td[data-th=Verlängerungen] > div.alert-danger")
+            .iter()
+            .map(|x| x.text().next().unwrap_or(""))
+            .next()
+            .unwrap_or("")
+            .to_string();
         let warnings = get_column_value(loan, "Mahnungen").parse::<i8>().unwrap();
         let can_be_renewed = loan
             .select_all("td[data-th=Selection] > input[disabled]")
             .is_empty();
-        let renew_id = if can_be_renewed {
+        let renewal_id = if can_be_renewed {
             loan.select_first("td.checkbox > label > input[name=\"renewSelectedIDS[]\"]")
                 .value()
                 .attr("value")
@@ -85,10 +99,12 @@ pub async fn route(
         loans.push(CheckedOut {
             medium,
             due_date,
+            status,
             renewals,
+            renewal_msg,
             warnings,
             can_be_renewed,
-            renew_id,
+            renewal_id,
         });
     }
     let result = ApiResult {

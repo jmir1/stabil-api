@@ -13,13 +13,31 @@ pub struct Medium {
 }
 
 #[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum Status {
+    PickupRack,
+    Default,
+    Other,
+}
+
+pub fn to_status(str: &str) -> Status {
+    match str {
+        "Ausleihstatus: Abholregal" => Status::PickupRack,
+        "" => Status::Default,
+        &_ => Status::Other,
+    }
+}
+
+#[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
 pub struct CheckedOut {
     pub medium: Medium,
     pub due_date: String,
+    pub status: Status,
     pub renewals: i8,
+    pub renewal_msg: String,
     pub warnings: i8,
     pub can_be_renewed: bool,
-    pub renew_id: String,
+    pub renewal_id: String,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
