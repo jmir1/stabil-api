@@ -8,9 +8,11 @@ mod tests {
 
     #[test]
     fn test_login() {
-        let client = Client::tracked(rocket()).expect("valid rocket instance");
-        let username = std::env::var("STABIL_API_TEST_USERNAME").unwrap();
-        let password = std::env::var("STABIL_API_TEST_PASSWORD").unwrap();
+        let client = Client::untracked(rocket()).expect("valid rocket instance");
+        let username = std::env::var("STABIL_API_TEST_USERNAME")
+            .expect("STABIL_API_TEST_USERNAME env var not provided!");
+        let password = std::env::var("STABIL_API_TEST_PASSWORD")
+            .expect("STABIL_API_TEST_PASSWORD env var not provided!");
         let response = client
             .post(uri!(post_session_token::route))
             .header(ContentType::Form)
