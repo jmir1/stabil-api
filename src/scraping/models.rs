@@ -6,8 +6,14 @@ pub struct Session {
 
 #[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
 pub struct Medium {
-    pub id: String,
+    pub ppn: String,
     pub title: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
+pub struct Volume {
+    pub medium: Medium,
+    pub bar: String,
     pub signature: String,
     pub location: Location,
 }
@@ -30,21 +36,19 @@ pub fn to_status(str: &str) -> Status {
 
 #[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
 pub struct CheckedOut {
-    pub medium: Medium,
+    pub volume: Volume,
     pub due_date: String,
     pub status: Status,
     pub renewals: i8,
     pub renewal_msg: String,
     pub warnings: i8,
     pub can_be_renewed: bool,
-    pub renewal_id: String,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
 pub struct Reservation {
-    pub medium: Medium,
+    pub volume: Volume,
     pub due_date: String,
-    pub cancel_id: String,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]

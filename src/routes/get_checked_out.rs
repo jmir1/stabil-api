@@ -1,5 +1,5 @@
 use crate::scraping::{
-    models::{to_library, to_status, ApiResponse, ApiResult, CheckedOut, Location, Medium},
+    models::{to_library, to_status, ApiResponse, ApiResult, CheckedOut, Location, Medium, Volume},
     utils::{is_logged_in, Select},
 };
 
@@ -33,7 +33,7 @@ pub async fn route(
 
     let mut loans: Vec<CheckedOut> = vec![];
     for loan in document.select_all("tr.myresearch-result") {
-        let id = get_medium_id(loan.value().attr("id").unwrap());
+        let ppn = get_ppn(loan.value().attr("id").unwrap());
         let title = get_column_value(loan, "Titel");
         let status_string = loan
             .select_all("td[data-th=Titel] > div.alert-danger")
@@ -79,32 +79,34 @@ pub async fn route(
         let can_be_renewed = loan
             .select_all("td[data-th=Selection] > input[disabled]")
             .is_empty();
-        let renewal_id = if can_be_renewed {
-            loan.select_first("td.checkbox > label > input[name=\"renewSelectedIDS[]\"]")
+        let volume_bar = if can_be_renewed {
+            let uri = loan
+                .select_first("td.checkbox > label > input[name=\"renewSelectedIDS[]\"]")
                 .value()
                 .attr("value")
                 .unwrap()
-                .to_string()
+                .to_string();
+            get_bar(&uri)
         } else {
             String::new()
         };
         let location = Location { library, section };
-        let medium = Medium {
-            id,
-            title,
+        let medium = Medium { ppn, title };
+        let volume = Volume {
+            medium,
+            bar: volume_bar,
             signature,
             location,
         };
 
         loans.push(CheckedOut {
-            medium,
+            volume,
             due_date,
             status,
             renewals,
             renewal_msg,
             warnings,
             can_be_renewed,
-            renewal_id,
         });
     }
     let result = ApiResult {
@@ -127,10 +129,16 @@ fn get_column_value(loan: scraper::ElementRef, column: &str) -> String {
         .to_string()
 }
 
-fn get_medium_id(id_attr: &str) -> String {
-    let start_idx = id_attr.find(":ppn:").unwrap() + 5;
-    let end_idx = id_attr.len();
-    id_attr[start_idx..end_idx].to_string()
+pub fn get_bar(bar_attr: &str) -> String {
+    let start_idx = bar_attr.find(":bar:").unwrap() + 5;
+    let end_idx = bar_attr.len();
+    bar_attr[start_idx..end_idx].to_string()
+}
+
+fn get_ppn(ppn_attr: &str) -> String {
+    let start_idx = ppn_attr.find(":ppn:").unwrap() + 5;
+    let end_idx = ppn_attr.len();
+    ppn_attr[start_idx..end_idx].to_string()
 }
 
 #[rocket_okapi::openapi(skip)]

@@ -15,8 +15,10 @@ mod tests {
             .expect("STABIL_API_TEST_PASSWORD env var not provided!");
         let response = client
             .post(uri!(post_session_token::route))
-            .header(ContentType::Form)
-            .body(format!("username={username}&password={password}"))
+            .header(ContentType::JSON)
+            .body(format!(
+                "{{\"username\":\"{username}\",\"password\":\"{password}\"}}"
+            ))
             .dispatch();
         assert_eq!(response.status(), Status::Ok);
         let result: ApiResult<Session> = response.into_json().unwrap();

@@ -8,7 +8,7 @@ use crate::scraping::{
 #[rocket_okapi::openapi(tag = "Receive a session_token for accessing the user's logged in area.")]
 #[post("/session_token", data = "<login_data>")]
 pub async fn route(
-    login_data: rocket::form::Form<LoginData>,
+    login_data: rocket::serde::json::Json<LoginData>,
     client: &rocket::State<reqwest::Client>,
 ) -> ApiResponse<Session> {
     let username = login_data.username.to_owned();
@@ -75,7 +75,7 @@ pub async fn route(
     ApiResponse { status, result }
 }
 
-#[derive(FromForm, serde::Serialize, rocket_okapi::JsonSchema)]
+#[derive(serde::Deserialize, serde::Serialize, rocket_okapi::JsonSchema)]
 pub struct LoginData {
     username: String,
     password: String,
