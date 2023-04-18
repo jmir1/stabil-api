@@ -1,5 +1,6 @@
 use crate::scraping::{
-    models::{to_library, ApiResponse, ApiResult, Location, Medium, Reservation, Volume},
+    libraries::to_library,
+    models::{ApiResponse, ApiResult, Location, Medium, Reservation, Volume},
     utils::{is_logged_in, Select},
 };
 

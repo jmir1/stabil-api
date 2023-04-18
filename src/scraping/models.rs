@@ -55,15 +55,7 @@ pub struct Reservation {
 pub struct Library {
     pub id: i32,
     pub name: String,
-}
-
-pub fn to_library(str: &str) -> Library {
-    let name = str.to_string();
-    match str {
-        "Staats- und Universitätsbibliothek" => Library { id: 2, name },
-        "FB Physik" => Library { id: 267, name },
-        &_ => Library { id: 0, name },
-    }
+    pub filter: String,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
