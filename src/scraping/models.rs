@@ -1,16 +1,20 @@
-#[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
+use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, NoneAsEmptyString};
+use utoipa::{IntoParams, ToSchema};
+
+#[derive(Serialize, Deserialize, ToSchema)]
 pub struct Session {
     pub session_token: String,
     pub expiry: i64,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
+#[derive(Serialize, Deserialize, ToSchema)]
 pub struct Medium {
     pub ppn: String,
     pub title: String,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
+#[derive(Serialize, Deserialize, ToSchema)]
 pub struct Volume {
     pub medium: Medium,
     pub bar: String,
@@ -18,7 +22,7 @@ pub struct Volume {
     pub location: Location,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
+#[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Status {
     PickupRack,
@@ -34,7 +38,7 @@ pub fn to_status(str: &str) -> Status {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
+#[derive(Serialize, Deserialize, ToSchema)]
 pub struct CheckedOut {
     pub volume: Volume,
     pub due_date: String,
@@ -45,60 +49,53 @@ pub struct CheckedOut {
     pub can_be_renewed: bool,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
+#[derive(Serialize, Deserialize, ToSchema)]
 pub struct Reservation {
     pub volume: Volume,
     pub due_date: String,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
+#[derive(Serialize, Deserialize, ToSchema)]
 pub struct Library {
     pub id: i32,
     pub name: String,
     pub filter: String,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
+#[derive(Serialize, Deserialize, ToSchema)]
 pub struct Location {
     pub library: Library,
     pub section: String,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
-pub struct ApiResult<T: rocket_okapi::JsonSchema> {
+#[derive(Serialize, Deserialize, ToSchema)]
+#[aliases(SessionResult = ApiResult<Session>, CheckedOutResult = ApiResult<Vec<CheckedOut>>, ReservationResult = ApiResult<Vec<Reservation>>)]
+pub struct ApiResult<T> {
     pub success: bool,
     pub data: T,
     pub msg: String,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, rocket_okapi::JsonSchema)]
-pub struct ApiResponse<T: rocket_okapi::JsonSchema> {
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct ApiResponse<T> {
     pub status: u16,
     pub result: ApiResult<T>,
 }
 
-impl<'r, T: serde::Serialize + rocket_okapi::JsonSchema> rocket::response::Responder<'r, 'static>
-    for ApiResponse<T>
-{
-    fn respond_to(self, req: &'r rocket::Request<'_>) -> rocket::response::Result<'static> {
-        let string = serde_json::to_string(&self.result).unwrap();
-        rocket::Response::build_from(string.respond_to(req)?)
-            .header(rocket::http::ContentType::new("application", "json"))
-            .status(rocket::http::Status::new(self.status))
-            .ok()
+impl<T: Serialize> axum::response::IntoResponse for ApiResponse<T> {
+    fn into_response(self) -> axum::http::Response<axum::body::Body> {
+        let body = serde_json::to_string(&self.result).unwrap();
+        axum::http::Response::builder()
+            .status(self.status)
+            .header("Content-Type", "application/json")
+            .body(axum::body::Body::from(body))
+            .unwrap()
     }
 }
 
-impl<T: serde::Serialize + rocket_okapi::JsonSchema> rocket_okapi::response::OpenApiResponderInner
-    for ApiResponse<T>
-{
-    fn responses(
-        gen: &mut rocket_okapi::gen::OpenApiGenerator,
-    ) -> rocket_okapi::Result<rocket_okapi::okapi::openapi3::Responses> {
-        let mut responses = rocket_okapi::okapi::openapi3::Responses::default();
-        let schema = gen.json_schema::<ApiResult<T>>();
-        rocket_okapi::util::add_schema_response(&mut responses, 200, "application/json", schema)?;
-
-        Ok(responses)
-    }
+#[serde_as]
+#[derive(Serialize, Deserialize, IntoParams)]
+pub struct SessionTokenQuery {
+    #[serde_as(as = "NoneAsEmptyString")]
+    pub session_token: Option<String>,
 }

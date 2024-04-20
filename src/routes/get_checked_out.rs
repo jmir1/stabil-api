@@ -1,18 +1,40 @@
-use crate::scraping::{
-    libraries::to_library,
-    models::{to_status, ApiResponse, ApiResult, CheckedOut, Location, Medium, Volume},
-    utils::{is_logged_in, Select},
+use axum::{
+    extract::{Query, State},
+    http::StatusCode,
 };
 
-#[rocket_okapi::openapi(tag = "Get a user's checked out items")]
-#[get("/checked_out?<session_token>")]
+use crate::{
+    scraping::{
+        libraries::to_library,
+        models::{to_status, ApiResponse, ApiResult, CheckedOut, Location, Medium, Volume},
+        utils::{is_logged_in, Select},
+    },
+    SessionTokenQuery,
+};
+
+#[utoipa::path(
+    get,
+    path = "/checked_out",
+    //params(GetCheckedOutQuery),
+    responses(
+        (status = 200, description = "Checked out items", body = CheckedOutResult),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+    ),
+    security(("session_token" = [])),
+)]
+#[worker::send]
 pub async fn route(
-    session_token: &str,
-    client: &rocket::State<reqwest::Client>,
+    State(client): State<reqwest::Client>,
+    query: Query<SessionTokenQuery>,
 ) -> ApiResponse<Vec<CheckedOut>> {
+    let session_token = match &query.session_token {
+        Some(token) => token,
+        None => return default_route(),
+    };
     let response_text = client
         .get("https://katalogplus.sub.uni-hamburg.de/vufind/MyResearch/Home")
-        .header("cookie", format!("VUFIND_SESSION={session_token}"))
+        .header("cookie", format!("VUFIND_SESSION={}", session_token))
         .send()
         .await
         .unwrap()
@@ -27,7 +49,7 @@ pub async fn route(
             msg: "session_token is invalid.".to_string(),
         };
         return ApiResponse {
-            status: rocket::http::Status::Unauthorized.code,
+            status: StatusCode::UNAUTHORIZED.as_u16(),
             result,
         };
     }
@@ -116,7 +138,7 @@ pub async fn route(
         msg: String::new(),
     };
     ApiResponse {
-        status: rocket::http::Status::Ok.code,
+        status: StatusCode::OK.as_u16(),
         result,
     }
 }
@@ -142,8 +164,6 @@ fn get_ppn(ppn_attr: &str) -> String {
     ppn_attr[start_idx..end_idx].to_string()
 }
 
-#[rocket_okapi::openapi(skip)]
-#[get("/checked_out")]
 pub fn default_route() -> ApiResponse<Vec<CheckedOut>> {
     let msg = "This route needs a session_token query parameter.".to_string();
     let result = ApiResult {
@@ -152,7 +172,7 @@ pub fn default_route() -> ApiResponse<Vec<CheckedOut>> {
         msg,
     };
     ApiResponse {
-        status: rocket::http::Status::BadRequest.code,
+        status: StatusCode::BAD_REQUEST.as_u16(),
         result,
     }
 }

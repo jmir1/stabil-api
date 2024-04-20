@@ -1,17 +1,38 @@
-use crate::scraping::{
-    libraries::to_library,
-    models::{ApiResponse, ApiResult, Location, Medium, Reservation, Volume},
-    utils::{is_logged_in, Select},
+use axum::{
+    extract::{Query, State},
+    http::StatusCode,
+};
+
+use crate::{
+    scraping::{
+        libraries::to_library,
+        models::{ApiResponse, ApiResult, Location, Medium, Reservation, Volume},
+        utils::{is_logged_in, Select},
+    },
+    SessionTokenQuery,
 };
 
 use super::get_checked_out::get_bar;
 
-#[rocket_okapi::openapi(tag = "Get a user's reserved items.")]
-#[get("/reservations?<session_token>")]
+#[utoipa::path(
+    get,
+    path = "/reservations",
+    responses(
+        (status = 200, description = "Reserved items", body = ReservationResult),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+    ),
+    security(("session_token" = [])),
+)]
+#[worker::send]
 pub async fn route(
-    session_token: &str,
-    client: &rocket::State<reqwest::Client>,
+    State(client): State<reqwest::Client>,
+    query: Query<SessionTokenQuery>,
 ) -> ApiResponse<Vec<Reservation>> {
+    let session_token = match &query.session_token {
+        Some(token) => token,
+        None => return default_route(),
+    };
     let response_text = client
         .get("https://katalogplus.sub.uni-hamburg.de/vufind/Holds/List")
         .header("cookie", format!("VUFIND_SESSION={session_token}"))
@@ -29,7 +50,7 @@ pub async fn route(
             msg: "session_token is invalid.".to_string(),
         };
         return ApiResponse {
-            status: rocket::http::Status::Unauthorized.code,
+            status: StatusCode::UNAUTHORIZED.as_u16(),
             result,
         };
     }
@@ -83,7 +104,7 @@ pub async fn route(
         msg: String::new(),
     };
     ApiResponse {
-        status: rocket::http::Status::Ok.code,
+        status: StatusCode::OK.as_u16(),
         result,
     }
 }
@@ -104,8 +125,6 @@ fn get_medium_ppn(id_attr: &str) -> String {
     id_attr[start_idx..end_idx].to_string()
 }
 
-#[rocket_okapi::openapi(skip)]
-#[get("/reservations")]
 pub fn default_route() -> ApiResponse<Vec<Reservation>> {
     let msg = "This route needs a session_token query parameter.".to_string();
     let result = ApiResult {
@@ -114,7 +133,7 @@ pub fn default_route() -> ApiResponse<Vec<Reservation>> {
         msg,
     };
     ApiResponse {
-        status: rocket::http::Status::BadRequest.code,
+        status: StatusCode::BAD_REQUEST.as_u16(),
         result,
     }
 }
