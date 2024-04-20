@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install rust toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -32,7 +32,7 @@ jobs:
     needs: [test]
     steps:
       - name: Restart service via SSH
-        uses: appleboy/ssh-action@v0.1.7
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
