@@ -17,7 +17,7 @@ use crate::{
     path = "/checked_out",
     //params(GetCheckedOutQuery),
     responses(
-        (status = 200, description = "Checked out items", body = CheckedOutResult),
+        (status = 200, description = "Checked out items", body = ApiResult<Vec<CheckedOut>>),
         (status = 400, description = "Bad request", body = String),
         (status = 401, description = "Unauthorized", body = String),
     ),

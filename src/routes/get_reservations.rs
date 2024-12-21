@@ -18,7 +18,7 @@ use super::get_checked_out::get_bar;
     get,
     path = "/reservations",
     responses(
-        (status = 200, description = "Reserved items", body = ReservationResult),
+        (status = 200, description = "Reserved items", body = ApiResult<Vec<Reservation>>),
         (status = 400, description = "Bad request", body = String),
         (status = 401, description = "Unauthorized", body = String),
     ),

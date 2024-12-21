@@ -69,7 +69,6 @@ pub struct Location {
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
-#[aliases(SessionResult = ApiResult<Session>, CheckedOutResult = ApiResult<Vec<CheckedOut>>, ReservationResult = ApiResult<Vec<Reservation>>)]
 pub struct ApiResult<T> {
     pub success: bool,
     pub data: T,

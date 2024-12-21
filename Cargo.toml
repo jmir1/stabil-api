@@ -15,18 +15,18 @@ server = ["tokio", "axum/http1", "axum/http2", "axum/tokio"]
 wasm = ["getrandom"]
 
 [dependencies]
-reqwest = {version = "0.11.20", features = ["cookies", "multipart"]}
-scraper = "0.17.1"
-serde = {version = "1.0.188", features = ["derive"]}
-serde_json = "1.0.107"
-chrono = "0.4.31"
+reqwest = {version = "0.12.9", features = ["cookies", "multipart"]}
+scraper = "0.22.0"
+serde = {version = "1.0.216", features = ["derive"]}
+serde_json = "1.0.134"
+chrono = "0.4.39"
 phf = { version = "0.11.2", features = ["macros"] }
-axum = { version = "0.7.5", default-features = false, features = ["json", "query"] }
-axum-macros = "0.4.1"
-serde_with = "3.7.0"
-worker-macros = { version = "0.1.0", default-features = false }
-worker = { version = "0.1.0", default-features = false }
-getrandom = { version = "0.2.14", features = ["js"], optional = true }
-tokio = { version = "1.37.0", features = ["full"], optional = true }
-utoipa-swagger-ui = { version = "6.0.0", features = ["axum"] }
-utoipa = { version = "4.2.0", features = ["axum_extras"] }
+axum = { version = "0.7.9", default-features = false, features = ["json", "query"] }
+axum-macros = "0.4.2"
+serde_with = "3.11.0"
+worker-macros = { version = "0.5.0", default-features = false }
+worker = { version = "0.5.0", default-features = false }
+getrandom = { version = "0.2.15", features = ["js"], optional = true }
+tokio = { version = "1.42.0", features = ["full"], optional = true }
+utoipa-swagger-ui = { version = "8.1.0", features = ["axum"] }
+utoipa = { version = "5.3.0", features = ["axum_extras"] }

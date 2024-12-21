@@ -15,7 +15,7 @@ use crate::scraping::{
     path = "/session_token",
     request_body = LoginData,
     responses(
-        (status = 200, description = "Session token", body = SessionResult),
+        (status = 200, description = "Session token", body = ApiResult<Session>),
         (status = 401, description = "Unauthorized", body = String),
     )
 )]
