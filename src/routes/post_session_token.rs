@@ -21,13 +21,13 @@ use crate::scraping::{
 )]
 #[worker::send]
 pub async fn route(
-    State(client): State<reqwest::Client>,
+    State(state): State<crate::State>,
     login_data: Json<LoginData>,
 ) -> ApiResponse<Session> {
     let username = login_data.username.to_owned();
     let password = login_data.password.to_owned();
 
-    let login_response = client
+    let login_response = state.client
         .get("https://katalogplus.sub.uni-hamburg.de/vufind/MyResearch/UserLogin")
         .send()
         .await
@@ -54,7 +54,7 @@ pub async fn route(
     let expiry = chrono::Utc::now()
         .add(chrono::Duration::hours(1))
         .timestamp(); // The session expires 1 hour from now.
-    let request = client
+    let request = state.no_redirect_client
     .post("https://katalogplus.sub.uni-hamburg.de/vufind/MyResearch/Home?layout=lightbox&lbreferer=https%3A%2F%2Fkatalogplus.sub.uni-hamburg.de%2Fvufind%2FMyResearch%2FUserLogin")
     .multipart(form_body)
     .header("cookie", format!("VUFIND_SESSION={session_token}"));

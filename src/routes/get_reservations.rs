@@ -8,8 +8,7 @@ use crate::{
         libraries::to_library,
         models::{ApiResponse, ApiResult, Location, Medium, Reservation, Volume},
         utils::{is_logged_in, Select},
-    },
-    SessionTokenQuery,
+    }, SessionTokenQuery
 };
 
 use super::get_checked_out::get_bar;
@@ -26,14 +25,14 @@ use super::get_checked_out::get_bar;
 )]
 #[worker::send]
 pub async fn route(
-    State(client): State<reqwest::Client>,
+    State(state): State<crate::State>,
     query: Query<SessionTokenQuery>,
 ) -> ApiResponse<Vec<Reservation>> {
     let session_token = match &query.session_token {
         Some(token) => token,
         None => return default_route(),
     };
-    let response_text = client
+    let response_text = state.client
         .get("https://katalogplus.sub.uni-hamburg.de/vufind/Holds/List")
         .header("cookie", format!("VUFIND_SESSION={session_token}"))
         .send()

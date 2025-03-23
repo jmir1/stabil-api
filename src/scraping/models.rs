@@ -98,3 +98,12 @@ pub struct SessionTokenQuery {
     #[serde_as(as = "NoneAsEmptyString")]
     pub session_token: Option<String>,
 }
+
+#[serde_as]
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct ReservationData {
+    pub ppn: String,
+    pub doc_id: String,
+    pub item_id: String,
+    pub hash_key: String,
+}
