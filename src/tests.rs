@@ -5,7 +5,7 @@ mod tests {
     async fn test_login() {
         use axum::{extract::State, http::StatusCode, Json};
 
-        use crate::{routes::post_session_token::LoginData};
+        use crate::routes::post_session_token::LoginData;
 
         let username = std::env::var("STABIL_API_TEST_USERNAME")
             .expect("STABIL_API_TEST_USERNAME env var not provided!");
@@ -13,12 +13,13 @@ mod tests {
             .expect("STABIL_API_TEST_PASSWORD env var not provided!");
 
         let response = crate::routes::post_session_token::route(
-            State(
-                crate::State {
-                    client: reqwest::Client::new(),
-                    no_redirect_client: reqwest::Client::builder().redirect(reqwest::redirect::Policy::none()).build().unwrap()
-                }
-            ),
+            State(crate::State {
+                client: reqwest::Client::new(),
+                no_redirect_client: reqwest::Client::builder()
+                    .redirect(reqwest::redirect::Policy::none())
+                    .build()
+                    .expect("Failed to build no-redirect client"),
+            }),
             Json(LoginData { username, password }),
         )
         .await;

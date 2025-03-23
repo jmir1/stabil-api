@@ -83,12 +83,12 @@ pub struct ApiResponse<T> {
 
 impl<T: Serialize> axum::response::IntoResponse for ApiResponse<T> {
     fn into_response(self) -> axum::http::Response<axum::body::Body> {
-        let body = serde_json::to_string(&self.result).unwrap();
+        let body = serde_json::to_string(&self.result).unwrap_or_default();
         axum::http::Response::builder()
             .status(self.status)
             .header("Content-Type", "application/json")
             .body(axum::body::Body::from(body))
-            .unwrap()
+            .unwrap_or_default()
     }
 }
 

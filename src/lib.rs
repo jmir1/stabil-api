@@ -63,20 +63,29 @@ impl Modify for SecurityAddon {
 #[derive(Clone)]
 pub struct State {
     client: reqwest::Client,
-    no_redirect_client: reqwest::Client
+    no_redirect_client: reqwest::Client,
 }
 
 pub fn router() -> Router {
     let client = reqwest::Client::new();
-    let no_redirect_client = reqwest::Client::builder().redirect(reqwest::redirect::Policy::none()).build().unwrap();
-    let state = State { client, no_redirect_client };
+    let no_redirect_client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .expect("Failed to build no-redirect client");
+    let state = State {
+        client,
+        no_redirect_client,
+    };
     Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .route("/", get(routes::get_index::route))
         .route("/session_token", post(routes::post_session_token::route))
         .route("/checked_out", get(routes::get_checked_out::route))
         .route("/reservations", get(routes::get_reservations::route))
-        .route("/make_reservation", post(routes::post_make_reservation::route))
+        .route(
+            "/make_reservation",
+            post(routes::post_make_reservation::route),
+        )
         .with_state(state)
 }
 /*

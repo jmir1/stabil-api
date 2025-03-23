@@ -1,13 +1,15 @@
 use axum::{
     extract::{Query, State},
-    http::StatusCode, Json,
+    http::StatusCode,
+    Json,
 };
 
 use crate::{
     scraping::{
         models::{ApiResponse, ApiResult, Reservation, SessionTokenQuery},
-        utils::is_logged_in,
-    }, ReservationData
+        utils::{is_logged_in, Select},
+    },
+    ReservationData,
 };
 
 #[utoipa::path(
@@ -30,21 +32,41 @@ pub async fn route(
         Some(token) => token,
         None => return default_route(),
     };
-    let url = format!(
-        "https://katalogplus.sub.uni-hamburg.de/vufind/Record/{ppn}/Hold?doc_id={doc_id}&item_id={item_id}&hashKey={hash_key}&type=hold",
-        ppn = data.ppn,
-        doc_id = data.doc_id,
-        item_id = data.item_id,
-        hash_key = data.hash_key
-    );
-    let response = state.no_redirect_client
+
+    let mut url = reqwest::Url::parse(&format!(
+        "https://katalogplus.sub.uni-hamburg.de/vufind/Record/{}/Hold",
+        data.ppn
+    ))
+    .expect("Invalid base URL");
+    url.query_pairs_mut()
+        .append_pair("doc_id", &data.doc_id)
+        .append_pair("item_id", &data.item_id)
+        .append_pair("hashKey", &data.hash_key)
+        .append_pair("type", "hold");
+
+    let response = match state
+        .no_redirect_client
         .get(url)
-        .header("cookie", format!("VUFIND_SESSION={session_token}"))
+        .header(
+            "cookie",
+            format!("VUFIND_SESSION={session_token}; ui=standard"),
+        )
         .send()
         .await
-        .unwrap();
+    {
+        Err(_) => {
+            return ApiResponse {
+                status: StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
+                result: ApiResult {
+                    success: false,
+                    data: false,
+                    msg: "Failed to connect to the library server.".to_string(),
+                },
+            };
+        }
+        Ok(response) => response,
+    };
     let status = response.status();
-    println!("status: {}", status);
     if status == StatusCode::FOUND {
         let result = ApiResult {
             success: true,
@@ -56,8 +78,7 @@ pub async fn route(
             result,
         };
     } else {
-        let text = response.text().await.unwrap();
-        print!("text: {}", text);
+        let text = response.text().await.unwrap_or_default();
         let document = scraper::Html::parse_document(&text);
         if !is_logged_in(&document) {
             let result = ApiResult {
@@ -70,11 +91,15 @@ pub async fn route(
                 result,
             };
         }
-        //let message = document.select_all("selector").first().unwrap_or();
+        let message_element = document.select_first("div[role=alert]");
+        let message: &str = match message_element {
+            Some(element) => element.text().next().unwrap_or("Reservation unsuccessful."),
+            None => "Reservation unsuccessful.",
+        };
         let result = ApiResult {
             success: false,
             data: false,
-            msg: "Reservation unsuccessful.".to_string(),
+            msg: message.to_string(),
         };
         return ApiResponse {
             status: StatusCode::BAD_REQUEST.as_u16(),

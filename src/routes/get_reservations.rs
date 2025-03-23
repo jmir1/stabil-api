@@ -8,7 +8,8 @@ use crate::{
         libraries::to_library,
         models::{ApiResponse, ApiResult, Location, Medium, Reservation, Volume},
         utils::{is_logged_in, Select},
-    }, SessionTokenQuery
+    },
+    SessionTokenQuery,
 };
 
 use super::get_checked_out::get_bar;
@@ -32,15 +33,25 @@ pub async fn route(
         Some(token) => token,
         None => return default_route(),
     };
-    let response_text = state.client
+    let response_text = match state
+        .client
         .get("https://katalogplus.sub.uni-hamburg.de/vufind/Holds/List")
         .header("cookie", format!("VUFIND_SESSION={session_token}"))
         .send()
         .await
-        .unwrap()
-        .text()
-        .await
-        .unwrap();
+    {
+        Err(_) => {
+            return ApiResponse {
+                status: StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
+                result: ApiResult {
+                    success: false,
+                    data: vec![],
+                    msg: "Failed to connect to the library server.".to_string(),
+                },
+            };
+        }
+        Ok(response) => response.text().await.unwrap_or_default(),
+    };
     let document = scraper::Html::parse_document(&response_text);
     if !is_logged_in(&document) {
         let result = ApiResult::<Vec<Reservation>> {
@@ -56,37 +67,39 @@ pub async fn route(
 
     let mut reservations: Vec<Reservation> = vec![];
     for reservation in document.select_all("tr.myresearch-result") {
-        let ppn = get_medium_ppn(reservation.value().attr("id").unwrap());
-        let title = reservation
-            .select_first("td[data-th=Titel] > span.title")
-            .text()
-            .next()
-            .unwrap()
-            .to_string();
+        let ppn = get_medium_ppn(reservation.value().attr("id").unwrap_or_default());
+        let title = match reservation.select_first("td[data-th=Titel] > span.title") {
+            Some(element) => element.text().next().unwrap_or_default().to_string(),
+            None => String::new(),
+        };
         let signature = get_column_value(reservation, "Signatur");
         let due_date = get_column_value(reservation, "Rückgabedatum");
-        let cancel_uri = reservation
-            .select_first("td > label > input[name=\"cancelSelectedIDS[]\"]")
-            .value()
-            .attr("value")
-            .unwrap()
-            .to_string();
+        let cancel_uri =
+            match reservation.select_first("td > label > input[name=\"cancelSelectedIDS[]\"]") {
+                Some(element) => element
+                    .value()
+                    .attr("value")
+                    .unwrap_or_default()
+                    .to_string(),
+                None => String::new(),
+            };
 
         let bar = get_bar(&cancel_uri);
         let library = to_library(
-            reservation
-                .select_first("td[data-th=\"Standort (Printmedien)\"] > strong")
-                .text()
-                .next()
-                .unwrap(),
+            match reservation.select_first("td[data-th=\"Standort (Printmedien)\"] > strong") {
+                Some(element) => element.text().next().unwrap_or_default(),
+                None => "",
+            },
         );
-        let section = reservation
-            .select_first("td[data-th=\"Standort (Printmedien)\"]")
-            .text()
-            .map(|x| x.trim())
-            .filter(|&x| !x.is_empty())
-            .collect::<Vec<&str>>()[1..]
-            .join(" ");
+        let section = match reservation.select_first("td[data-th=\"Standort (Printmedien)\"]") {
+            Some(element) => element
+                .text()
+                .map(|x| x.trim())
+                .filter(|&x| !x.is_empty())
+                .collect::<Vec<&str>>()[1..]
+                .join(" "),
+            None => String::new(),
+        };
         let medium = Medium { ppn, title };
         let volume = Volume {
             medium,
@@ -109,17 +122,14 @@ pub async fn route(
 }
 
 fn get_column_value(reservation: scraper::ElementRef, column: &str) -> String {
-    reservation
-        .select_first(&format!("td[data-th={column}]"))
-        .text()
-        .next()
-        .unwrap()
-        .trim()
-        .to_string()
+    match reservation.select_first(&format!("td[data-th={column}]")) {
+        Some(element) => element.text().next().unwrap_or_default().trim().to_string(),
+        None => String::new(),
+    }
 }
 
 fn get_medium_ppn(id_attr: &str) -> String {
-    let start_idx = id_attr.find(":ppn:").unwrap() + 5;
+    let start_idx = id_attr.find(":ppn:").unwrap_or_default() + 5;
     let end_idx = id_attr.len();
     id_attr[start_idx..end_idx].to_string()
 }
