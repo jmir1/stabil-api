@@ -1,6 +1,6 @@
 [package]
 name = "stabil-api"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 
 [lib]
@@ -15,18 +15,18 @@ server = ["tokio", "axum/http1", "axum/http2", "axum/tokio"]
 wasm = ["getrandom"]
 
 [dependencies]
-reqwest = {version = "0.12.9", features = ["cookies", "multipart"]}
-scraper = "0.22.0"
-serde = {version = "1.0.216", features = ["derive"]}
-serde_json = "1.0.134"
-chrono = "0.4.39"
-phf = { version = "0.11.2", features = ["macros"] }
-axum = { version = "0.7.9", default-features = false, features = ["json", "query"] }
-axum-macros = "0.4.2"
-serde_with = "3.11.0"
+reqwest = {version = "0.12.15", features = ["cookies", "multipart"]}
+scraper = "0.23.1"
+serde = {version = "1.0.219", features = ["derive"]}
+serde_json = "1.0.140"
+chrono = "0.4.40"
+phf = { version = "0.11.3", features = ["macros"] }
+axum = { version = "0.8.1", default-features = false, features = ["json", "query"] }
+axum-macros = "0.5.0"
+serde_with = "3.12.0"
 worker-macros = { version = "0.5.0", default-features = false }
 worker = { version = "0.5.0", default-features = false }
-getrandom = { version = "0.2.15", features = ["js"], optional = true }
-tokio = { version = "1.42.0", features = ["full"], optional = true }
-utoipa-swagger-ui = { version = "8.1.0", features = ["axum"] }
-utoipa = { version = "5.3.0", features = ["axum_extras"] }
+getrandom = { version = "0.3.2", features = ["wasm_js"], optional = true }
+tokio = { version = "1.44.1", features = ["full"], optional = true }
+utoipa-swagger-ui = { version = "9.0.0", features = ["axum", "vendored"] }
+utoipa = { version = "5.3.1", features = ["axum_extras"] }
