@@ -9,7 +9,7 @@ A documentation UI can be found [here](https://api.stabilapp.de/swagger-ui/index
 
 ## License
 
-    Copyright (C) 2023 jmir1
+    Copyright (C) 2023-2025 jmir1
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
