@@ -4,15 +4,14 @@ on:
     - main
   pull_request:
 
-name: Continuous integration
+name: ci
 
 jobs:
   fmt:
-    name: cargo fmt
     runs-on: codeberg-small
     steps:
       - name: Check out repository
-        uses: https://code.forgejo.org/actions/checkout@v4
+        uses: actions/checkout@v4
 
       - name: Install rust toolchain
         uses: https://github.com/dtolnay/rust-toolchain@stable
@@ -24,11 +23,10 @@ jobs:
         run: cargo fmt --all -- --check
 
   clippy:
-    name: cargo clippy
     runs-on: codeberg-small
     steps:
       - name: Check out repository
-        uses: https://code.forgejo.org/actions/checkout@v4
+        uses: actions/checkout@v4
 
       - name: Install rust toolchain
         uses: https://github.com/dtolnay/rust-toolchain@stable
@@ -40,11 +38,10 @@ jobs:
         run: cargo clippy -- -D warnings
 
   test:
-    name: cargo test
     runs-on: codeberg-small
     steps:
       - name: Check out repository
-        uses: https://code.forgejo.org/actions/checkout@v4
+        uses: actions/checkout@v4
 
       - name: Install rust toolchain
         uses: https://github.com/dtolnay/rust-toolchain@stable
