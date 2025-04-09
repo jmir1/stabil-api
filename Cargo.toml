@@ -1,6 +1,6 @@
 [package]
 name = "stabil-api"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 
 [lib]
@@ -28,5 +28,5 @@ worker-macros = { version = "0.5.0", default-features = false }
 worker = { version = "0.5.0", default-features = false }
 getrandom = { version = "0.3.2", features = ["wasm_js"], optional = true }
 tokio = { version = "1.44.1", features = ["full"], optional = true }
-utoipa-swagger-ui = { version = "9.0.0", features = ["axum", "vendored"] }
+utoipa-swagger-ui = { version = "9.0.1", features = ["axum", "vendored"] }
 utoipa = { version = "5.3.1", features = ["axum_extras"] }
