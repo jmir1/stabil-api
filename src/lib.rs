@@ -23,6 +23,7 @@ mod scraping;
             routes::get_checked_out::route,
             routes::get_reservations::route,
             routes::post_make_reservation::route,
+            routes::post_cancel_reservations::route,
         ),
         components(
             schemas(
@@ -82,6 +83,10 @@ pub fn router() -> Router {
         .route("/session_token", post(routes::post_session_token::route))
         .route("/checked_out", get(routes::get_checked_out::route))
         .route("/reservations", get(routes::get_reservations::route))
+        .route(
+            "/cancel_reservations",
+            post(routes::post_cancel_reservations::route),
+        )
         .route(
             "/make_reservation",
             post(routes::post_make_reservation::route),
