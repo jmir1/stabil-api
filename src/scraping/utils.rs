@@ -75,3 +75,17 @@ impl Select for scraper::ElementRef<'_> {
 pub fn is_logged_in(document: &scraper::Html) -> bool {
     document.select_all("body.template-name-login").is_empty()
 }
+
+pub fn get_medium_ppn_from_id(id_attr: &str) -> i32 {
+    let start_idx = id_attr.find(":ppn:").unwrap_or_default() + 5;
+    let end_idx = id_attr.len();
+    let ppn_string = id_attr[start_idx..end_idx].to_string();
+    ppn_string.parse::<i32>().unwrap_or_default()
+}
+
+pub fn get_medium_ppn_from_href(href_attr: &str) -> i32 {
+    let start_idx = href_attr.find("/Record/").unwrap_or_default() + 8;
+    let end_idx = href_attr.find("?sid").unwrap_or_default();
+    let ppn_string = href_attr[start_idx..end_idx].to_string();
+    ppn_string.parse::<i32>().unwrap_or_default()
+}

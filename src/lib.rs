@@ -39,6 +39,7 @@ mod scraping;
                 ApiResult<Session>,
                 ApiResult<Vec<CheckedOut>>,
                 ApiResult<Vec<Reservation>>,
+                ApiResult<Vec<Medium>>,
                 routes::post_session_token::LoginData,
             ),
         ),
@@ -83,6 +84,7 @@ pub fn router() -> Router {
         .route("/session_token", post(routes::post_session_token::route))
         .route("/checked_out", get(routes::get_checked_out::route))
         .route("/reservations", get(routes::get_reservations::route))
+        .route("/search", get(routes::get_search::route))
         .route(
             "/cancel_reservations",
             post(routes::post_cancel_reservations::route),

@@ -10,7 +10,7 @@ pub struct Session {
 
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct Medium {
-    pub ppn: String,
+    pub ppn: i32,
     pub title: String,
 }
 
@@ -97,6 +97,14 @@ impl<T: Serialize> axum::response::IntoResponse for ApiResponse<T> {
 pub struct SessionTokenQuery {
     #[serde_as(as = "NoneAsEmptyString")]
     pub session_token: Option<String>,
+}
+
+#[serde_as]
+#[derive(Serialize, Deserialize, IntoParams)]
+pub struct SearchQuery {
+    #[serde_as(as = "NoneAsEmptyString")]
+    pub query: Option<String>,
+    pub page: Option<i32>,
 }
 
 #[serde_as]

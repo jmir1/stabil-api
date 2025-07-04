@@ -7,7 +7,7 @@ use crate::{
     scraping::{
         libraries::to_library,
         models::{to_status, ApiResponse, ApiResult, CheckedOut, Location, Medium, Volume},
-        utils::{is_logged_in, Select},
+        utils::{get_medium_ppn_from_id, is_logged_in, Select},
     },
     SessionTokenQuery,
 };
@@ -66,7 +66,7 @@ pub async fn route(
 
     let mut loans: Vec<CheckedOut> = vec![];
     for loan in document.select_all("tr.myresearch-result") {
-        let ppn = get_ppn(loan.value().attr("id").unwrap_or_default());
+        let ppn = get_medium_ppn_from_id(loan.value().attr("id").unwrap_or_default());
         let title = get_column_value(loan, "Titel");
         let status_string = loan
             .select_all("td[data-th=Titel] > div.alert-danger")
@@ -164,12 +164,6 @@ pub fn get_bar(bar_attr: &str) -> String {
     let start_idx = bar_attr.find(":bar:").unwrap_or_default() + 5;
     let end_idx = bar_attr.len();
     bar_attr[start_idx..end_idx].to_string()
-}
-
-fn get_ppn(ppn_attr: &str) -> String {
-    let start_idx = ppn_attr.find(":ppn:").unwrap_or_default() + 5;
-    let end_idx = ppn_attr.len();
-    ppn_attr[start_idx..end_idx].to_string()
 }
 
 pub fn default_route() -> ApiResponse<Vec<CheckedOut>> {

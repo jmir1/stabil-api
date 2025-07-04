@@ -7,7 +7,7 @@ use crate::{
     scraping::{
         libraries::to_library,
         models::{ApiResponse, ApiResult, Location, Medium, Reservation, Volume},
-        utils::{is_logged_in, Select},
+        utils::{get_medium_ppn_from_id, is_logged_in, Select},
     },
     SessionTokenQuery,
 };
@@ -67,7 +67,7 @@ pub async fn route(
 
     let mut reservations: Vec<Reservation> = vec![];
     for reservation in document.select_all("tr.myresearch-result") {
-        let ppn = get_medium_ppn(reservation.value().attr("id").unwrap_or_default());
+        let ppn = get_medium_ppn_from_id(reservation.value().attr("id").unwrap_or_default());
         let title = match reservation.select_first("td[data-th=Titel] > span.title") {
             Some(element) => element.text().next().unwrap_or_default().to_string(),
             None => String::new(),
@@ -126,12 +126,6 @@ fn get_column_value(reservation: scraper::ElementRef, column: &str) -> String {
         Some(element) => element.text().next().unwrap_or_default().trim().to_string(),
         None => String::new(),
     }
-}
-
-fn get_medium_ppn(id_attr: &str) -> String {
-    let start_idx = id_attr.find(":ppn:").unwrap_or_default() + 5;
-    let end_idx = id_attr.len();
-    id_attr[start_idx..end_idx].to_string()
 }
 
 pub fn default_route() -> ApiResponse<Vec<Reservation>> {
