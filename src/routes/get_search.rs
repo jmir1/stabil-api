@@ -11,7 +11,6 @@ use crate::{
     SearchQuery,
 };
 
-
 #[utoipa::path(
     get,
     path = "/search",
@@ -73,4 +72,3 @@ pub async fn route(
         result,
     }
 }
-

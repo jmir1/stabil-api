@@ -94,6 +94,12 @@ impl<T: Serialize> axum::response::IntoResponse for ApiResponse<T> {
 
 #[serde_as]
 #[derive(Serialize, Deserialize, IntoParams)]
+pub struct BarcodeQuery {
+    pub barcode: Option<i32>,
+}
+
+#[serde_as]
+#[derive(Serialize, Deserialize, IntoParams)]
 pub struct SessionTokenQuery {
     #[serde_as(as = "NoneAsEmptyString")]
     pub session_token: Option<String>,

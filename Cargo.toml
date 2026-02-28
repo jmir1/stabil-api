@@ -30,3 +30,4 @@ getrandom = { version = "0.3.2", features = ["wasm_js"], optional = true }
 tokio = { version = "1.44.1", features = ["full"], optional = true }
 utoipa-swagger-ui = { version = "9.0.1", features = ["axum", "vendored"] }
 utoipa = { version = "5.3.1", features = ["axum_extras"] }
+yaz-rs = "0.1.0"

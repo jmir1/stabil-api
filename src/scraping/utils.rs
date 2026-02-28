@@ -3,13 +3,13 @@ pub fn _parse_document(text: String) -> scraper::Html {
 }
 
 pub trait Select {
-    fn select_first(&self, selection_string: &str) -> Option<scraper::ElementRef>;
-    fn select_all(&self, selection_string: &str) -> Vec<scraper::ElementRef>;
+    fn select_first(&self, selection_string: &str) -> Option<scraper::ElementRef<'_>>;
+    fn select_all(&self, selection_string: &str) -> Vec<scraper::ElementRef<'_>>;
     // fn all_text(&self) -> Vec<String>;
 }
 
 impl Select for scraper::Html {
-    fn select_first(&self, selection_string: &str) -> Option<scraper::ElementRef> {
+    fn select_first(&self, selection_string: &str) -> Option<scraper::ElementRef<'_>> {
         let selector = scraper::Selector::parse(selection_string);
         match selector {
             Ok(selector) => self.select(&selector).next(),
@@ -17,7 +17,7 @@ impl Select for scraper::Html {
         }
     }
 
-    fn select_all(&self, selection_string: &str) -> Vec<scraper::ElementRef> {
+    fn select_all(&self, selection_string: &str) -> Vec<scraper::ElementRef<'_>> {
         let selector = scraper::Selector::parse(selection_string);
         let mut vec: Vec<scraper::ElementRef> = vec![];
         match selector {
@@ -41,7 +41,7 @@ impl Select for scraper::Html {
 }
 
 impl Select for scraper::ElementRef<'_> {
-    fn select_first(&self, selection_string: &str) -> Option<scraper::ElementRef> {
+    fn select_first(&self, selection_string: &str) -> Option<scraper::ElementRef<'_>> {
         let selector = scraper::Selector::parse(selection_string);
         match selector {
             Ok(selector) => self.select(&selector).next(),
@@ -49,7 +49,7 @@ impl Select for scraper::ElementRef<'_> {
         }
     }
 
-    fn select_all(&self, selection_string: &str) -> Vec<scraper::ElementRef> {
+    fn select_all(&self, selection_string: &str) -> Vec<scraper::ElementRef<'_>> {
         let selector = scraper::Selector::parse(selection_string);
         let mut vec: Vec<scraper::ElementRef> = vec![];
         match selector {

@@ -83,6 +83,7 @@ pub fn router() -> Router {
         .route("/", get(routes::get_index::route))
         .route("/session_token", post(routes::post_session_token::route))
         .route("/checked_out", get(routes::get_checked_out::route))
+        .route("/ppn_from_bar", get(routes::get_ppn_from_bar::route))
         .route("/reservations", get(routes::get_reservations::route))
         .route("/search", get(routes::get_search::route))
         .route(
