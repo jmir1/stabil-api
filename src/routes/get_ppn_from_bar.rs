@@ -30,8 +30,7 @@ pub async fn route(query: Query<BarcodeQuery>) -> ApiResponse<Option<i32>> {
     let server = "z3950.k10plus.de:210/opac-de-18";
     let mut connection = match ZoomConnection::connect(server) {
         Ok(connection) => connection,
-        Err(e) => {
-            eprintln!("Failed to connect to Z39.50 server: {e}");
+        Err(_) => {
             return ApiResponse {
                 status: StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
                 result: ApiResult {
@@ -81,11 +80,9 @@ pub async fn route(query: Query<BarcodeQuery>) -> ApiResponse<Option<i32>> {
             };
         }
     };
-    println!("Raw record: {record}");
     let json = match serde_json::from_str::<serde_json::Value>(&record) {
         Ok(json) => json,
-        Err(e) => {
-            eprintln!("Failed to parse record as JSON: {e}");
+        Err(_) => {
             return ApiResponse {
                 status: StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
                 result: ApiResult {
