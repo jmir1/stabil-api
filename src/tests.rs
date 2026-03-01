@@ -29,6 +29,22 @@ mod tests {
         assert!(response.result.data.expiry > 0);
     }
 
+    #[cfg(feature = "server")]
+    #[tokio::test]
+    async fn test_get_ppn_from_bar() {
+        use axum::{extract::Query, http::StatusCode};
+
+        use crate::routes::get_ppn_from_bar::route;
+        let response = route(Query(crate::scraping::models::BarcodeQuery {
+            barcode: Some(109956811),
+        }))
+        .await;
+
+        assert_eq!(response.status, StatusCode::OK.as_u16());
+        assert!(response.result.success);
+        assert_eq!(response.result.data, Some(1947771086));
+    }
+
     #[cfg(not(feature = "server"))]
     #[test]
     fn test_login() {
