@@ -46,6 +46,9 @@ jobs:
       - name: Install rust toolchain
         uses: https://github.com/dtolnay/rust-toolchain@stable
 
+      - name: Install yaz
+        run: sudo apt update && sudo apt install -y libyaz-dev
+
       - name: cargo check
         run: cargo check
 
