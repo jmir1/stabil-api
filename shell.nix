@@ -47,7 +47,14 @@ pkgs.mkShell {
     rustfmt
     openssl
     pkg-config
+    rust-analyzer
+    clang
+
+    # yaz toolkit as defined above
     yaz
+    libxslt
+    libxml2
   ];
+  LIBCLANG_PATH = pkgs.lib.makeLibraryPath [ pkgs.llvmPackages_latest.libclang.lib ];
   RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
 }
