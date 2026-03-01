@@ -15,7 +15,7 @@ use crate::scraping::models::{ApiResponse, ApiResult, BarcodeQuery};
 pub async fn route(query: Query<BarcodeQuery>) -> ApiResponse<Option<i32>> {
     let barcode = match query.barcode {
         Some(barcode) => barcode,
-        None => {
+        _ => {
             return ApiResponse {
                 status: StatusCode::BAD_REQUEST.as_u16(),
                 result: ApiResult {
