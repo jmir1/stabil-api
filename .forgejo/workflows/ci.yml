@@ -8,7 +8,7 @@ name: ci
 
 jobs:
   fmt:
-    runs-on: codeberg-small
+    runs-on: codeberg-tiny
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -23,7 +23,7 @@ jobs:
         run: cargo fmt --all -- --check
 
   clippy:
-    runs-on: codeberg-small
+    runs-on: codeberg-medium
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -38,7 +38,7 @@ jobs:
         run: cargo clippy -- -D warnings
 
   test:
-    runs-on: codeberg-small
+    runs-on: codeberg-medium
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
