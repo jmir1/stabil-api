@@ -5,17 +5,18 @@ use axum::{
 
 use crate::{
     scraping::{
-        models::{ApiResponse, ApiResult, Medium},
+        models::{ApiResponse, ApiResponseBody, Medium},
         utils::{get_medium_ppn_from_href, Select},
     },
     SearchQuery,
 };
 
 #[utoipa::path(
+    operation_id = "get_search",
     get,
     path = "/search",
     responses(
-        (status = 200, description = "Search results", body = ApiResult<Vec<Medium>>),
+        (status = 200, description = "Search results", body = Vec<Medium>),
         (status = 400, description = "Bad request", body = String),
     ),
     params(
@@ -23,10 +24,7 @@ use crate::{
     ),
 )]
 #[worker::send]
-pub async fn route(
-    State(state): State<crate::State>,
-    query: Query<SearchQuery>,
-) -> ApiResponse<Vec<Medium>> {
+pub async fn get(State(state): State<crate::State>, query: Query<SearchQuery>) -> ApiResponse {
     let query_string = match &query.query {
         Some(query) => query,
         None => "",
@@ -44,11 +42,7 @@ pub async fn route(
         Err(_) => {
             return ApiResponse {
                 status: StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
-                result: ApiResult {
-                    success: false,
-                    data: vec![],
-                    msg: "Failed to connect to the library server.".to_string(),
-                },
+                body: ApiResponseBody::Text("Failed to connect to the library server.".to_string()),
             };
         }
         Ok(response) => response.text().await.unwrap_or_default(),
@@ -62,13 +56,8 @@ pub async fn route(
         let medium = Medium { ppn, title };
         media.push(medium);
     }
-    let result = ApiResult {
-        success: true,
-        data: media,
-        msg: String::new(),
-    };
     ApiResponse {
         status: StatusCode::OK.as_u16(),
-        result,
+        body: ApiResponseBody::Mediums(media),
     }
 }

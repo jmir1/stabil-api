@@ -1,28 +1,28 @@
 use axum::{extract::Query, http::StatusCode};
 use yaz_rs::ZoomConnection;
 
-use crate::scraping::models::{ApiResponse, ApiResult, BarcodeQuery};
+use crate::scraping::models::{ApiResponse, ApiResponseBody, BarcodeQuery};
 
 #[utoipa::path(
+    operation_id = "get_ppn_from_bar",
     get,
     path = "/ppn_from_bar",
+    params(
+        ("barcode" = i32, Query, description = "The barcode of the volume to retrieve the PPN for")
+    ),
     responses(
-        (status = 200, description = "Volume information", body = ApiResult<Option<i32>>),
-        (status = 400, description = "Bad request", body = ApiResult<Option<i32>>),
-        (status = 404, description = "Not found", body = ApiResult<Option<i32>>),
+        (status = 200, description = "Volume information", body = i32),
+        (status = 400, description = "Bad request", body = String),
+        (status = 404, description = "Not found", body = String),
     )
 )]
-pub async fn route(query: Query<BarcodeQuery>) -> ApiResponse<Option<i32>> {
+pub async fn get(query: Query<BarcodeQuery>) -> ApiResponse {
     let barcode = match query.barcode {
         Some(barcode) => barcode,
         _ => {
             return ApiResponse {
                 status: StatusCode::BAD_REQUEST.as_u16(),
-                result: ApiResult {
-                    success: false,
-                    data: None,
-                    msg: "barcode query parameter is required.".to_string(),
-                },
+                body: ApiResponseBody::Text("barcode query parameter is required.".to_string()),
             }
         }
     };
@@ -33,11 +33,7 @@ pub async fn route(query: Query<BarcodeQuery>) -> ApiResponse<Option<i32>> {
         Err(_) => {
             return ApiResponse {
                 status: StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
-                result: ApiResult {
-                    success: false,
-                    data: None,
-                    msg: "Failed to connect to the library server.".to_string(),
-                },
+                body: ApiResponseBody::Text("Failed to connect to the library server.".to_string()),
             };
         }
     };
@@ -47,11 +43,9 @@ pub async fn route(query: Query<BarcodeQuery>) -> ApiResponse<Option<i32>> {
         Err(_) => {
             return ApiResponse {
                 status: StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
-                result: ApiResult {
-                    success: false,
-                    data: None,
-                    msg: "Failed to perform search on the library server.".to_string(),
-                },
+                body: ApiResponseBody::Text(
+                    "Failed to perform search on the library server.".to_string(),
+                ),
             };
         }
     };
@@ -59,11 +53,7 @@ pub async fn route(query: Query<BarcodeQuery>) -> ApiResponse<Option<i32>> {
     if hit_count == 0 {
         return ApiResponse {
             status: StatusCode::NOT_FOUND.as_u16(),
-            result: ApiResult {
-                success: false,
-                data: None,
-                msg: "No volume found for the given barcode.".to_string(),
-            },
+            body: ApiResponseBody::Text("No volume found for the given barcode.".to_string()),
         };
     }
     resultset.fetch(0, 1);
@@ -72,11 +62,9 @@ pub async fn route(query: Query<BarcodeQuery>) -> ApiResponse<Option<i32>> {
         _ => {
             return ApiResponse {
                 status: StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
-                result: ApiResult {
-                    success: false,
-                    data: None,
-                    msg: "Failed to retrieve record from the library server.".to_string(),
-                },
+                body: ApiResponseBody::Text(
+                    "Failed to retrieve record from the library server.".to_string(),
+                ),
             };
         }
     };
@@ -85,11 +73,9 @@ pub async fn route(query: Query<BarcodeQuery>) -> ApiResponse<Option<i32>> {
         Err(_) => {
             return ApiResponse {
                 status: StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
-                result: ApiResult {
-                    success: false,
-                    data: None,
-                    msg: "Failed to parse record from the library server.".to_string(),
-                },
+                body: ApiResponseBody::Text(
+                    "Failed to parse record from the library server.".to_string(),
+                ),
             };
         }
     };
@@ -105,20 +91,12 @@ pub async fn route(query: Query<BarcodeQuery>) -> ApiResponse<Option<i32>> {
         _ => {
             return ApiResponse {
                 status: StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
-                result: ApiResult {
-                    success: false,
-                    data: None,
-                    msg: "Failed to extract PPN from the record.".to_string(),
-                },
+                body: ApiResponseBody::Text("Failed to extract PPN from the record.".to_string()),
             }
         }
     };
     ApiResponse {
         status: StatusCode::OK.as_u16(),
-        result: ApiResult {
-            success: true,
-            data: Some(ppn),
-            msg: "PPN retrieved successfully.".to_string(),
-        },
+        body: ApiResponseBody::Number(ppn),
     }
 }

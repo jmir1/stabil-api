@@ -6,31 +6,31 @@ use axum::{
 use crate::{
     scraping::{
         libraries::to_library,
-        models::{to_status, ApiResponse, ApiResult, CheckedOut, Location, Medium, Volume},
+        models::{to_status, ApiResponse, ApiResponseBody, CheckedOut, Location, Medium, Volume},
         utils::{get_medium_ppn_from_id, is_logged_in, Select},
     },
     SessionTokenQuery,
 };
 
 #[utoipa::path(
+    operation_id = "get_checked_out",
     get,
     path = "/checked_out",
-    //params(GetCheckedOutQuery),
     responses(
-        (status = 200, description = "Checked out items", body = ApiResult<Vec<CheckedOut>>),
+        (status = 200, description = "Checked out items", body = Vec<CheckedOut>),
         (status = 400, description = "Bad request", body = String),
         (status = 401, description = "Unauthorized", body = String),
     ),
     security(("session_token" = [])),
 )]
 #[worker::send]
-pub async fn route(
+pub async fn get(
     State(state): State<crate::State>,
     query: Query<SessionTokenQuery>,
-) -> ApiResponse<Vec<CheckedOut>> {
+) -> ApiResponse {
     let session_token = match &query.session_token {
         Some(token) => token,
-        None => return default_route(),
+        _ => return default_route(),
     };
     let response_text = match state
         .client
@@ -42,25 +42,16 @@ pub async fn route(
         Err(_) => {
             return ApiResponse {
                 status: StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
-                result: ApiResult {
-                    success: false,
-                    data: vec![],
-                    msg: "Failed to connect to the library server.".to_string(),
-                },
+                body: ApiResponseBody::Text("Failed to connect to the library server.".to_string()),
             };
         }
         Ok(response) => response.text().await.unwrap_or_default(),
     };
     let document = scraper::Html::parse_document(&response_text);
     if !is_logged_in(&document) {
-        let result = ApiResult::<Vec<CheckedOut>> {
-            success: false,
-            data: vec![],
-            msg: "session_token is invalid.".to_string(),
-        };
         return ApiResponse {
             status: StatusCode::UNAUTHORIZED.as_u16(),
-            result,
+            body: ApiResponseBody::Text("session_token is invalid.".to_string()),
         };
     }
 
@@ -77,7 +68,7 @@ pub async fn route(
         let status = to_status(status_string);
         let library_string = match loan.select_all("td[data-th=Titel] > strong").get(1) {
             Some(element) => element.text().next().unwrap_or("").trim(),
-            None => "",
+            _ => "",
         };
         let library = to_library(library_string);
         let section: Vec<&str> = match loan.select_first("td[data-th=Titel]") {
@@ -86,7 +77,7 @@ pub async fn route(
                 .map(|x| x.trim())
                 .filter(|&x| !x.is_empty())
                 .collect(),
-            None => vec![],
+            _ => vec![],
         };
         let section_idx = section
             .iter()
@@ -117,11 +108,11 @@ pub async fn route(
                 .select_first("td.checkbox > label > input[name=\"renewSelectedIDS[]\"]")
             {
                 Some(element) => element.value().attr("value").unwrap_or_default(),
-                None => "",
+                _ => "",
             };
             get_bar(uri)
         } else {
-            String::new()
+            None
         };
         let location = Location { library, section };
         let medium = Medium { ppn, title };
@@ -142,39 +133,29 @@ pub async fn route(
             can_be_renewed,
         });
     }
-    let result = ApiResult {
-        success: true,
-        data: loans,
-        msg: String::new(),
-    };
     ApiResponse {
         status: StatusCode::OK.as_u16(),
-        result,
+        body: ApiResponseBody::CheckedOut(loans),
     }
 }
 
 fn get_column_value(loan: scraper::ElementRef, column: &str) -> String {
     match loan.select_first(&format!("td[data-th={column}]")) {
         Some(element) => element.text().next().unwrap_or_default().trim().to_string(),
-        None => String::new(),
+        _ => String::new(),
     }
 }
 
-pub fn get_bar(bar_attr: &str) -> String {
-    let start_idx = bar_attr.find(":bar:").unwrap_or_default() + 5;
+pub fn get_bar(bar_attr: &str) -> Option<i32> {
+    let start_idx = bar_attr.find(":bar:")? + 5;
     let end_idx = bar_attr.len();
-    bar_attr[start_idx..end_idx].to_string()
+    bar_attr[start_idx..end_idx].parse::<i32>().ok()
 }
 
-pub fn default_route() -> ApiResponse<Vec<CheckedOut>> {
+pub fn default_route() -> ApiResponse {
     let msg = "This route needs a session_token query parameter.".to_string();
-    let result = ApiResult {
-        success: false,
-        data: vec![],
-        msg,
-    };
     ApiResponse {
         status: StatusCode::BAD_REQUEST.as_u16(),
-        result,
+        body: ApiResponseBody::Text(msg),
     }
 }

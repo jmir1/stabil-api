@@ -6,24 +6,22 @@ use std::ops::Add;
 use utoipa::ToSchema;
 
 use crate::scraping::{
-    models::{ApiResponse, ApiResult, Session},
+    models::{ApiResponse, ApiResponseBody, Session},
     utils::Select,
 };
 
 #[utoipa::path(
+    operation_id = "post_session_token",
     post,
     path = "/session_token",
     request_body = LoginData,
     responses(
-        (status = 200, description = "Session token", body = ApiResult<Session>),
+        (status = 200, description = "Session token", body = Session),
         (status = 401, description = "Unauthorized", body = String),
     )
 )]
 #[worker::send]
-pub async fn route(
-    State(state): State<crate::State>,
-    login_data: Json<LoginData>,
-) -> ApiResponse<Session> {
+pub async fn post(State(state): State<crate::State>, login_data: Json<LoginData>) -> ApiResponse {
     let username = login_data.username.to_owned();
     let password = login_data.password.to_owned();
 
@@ -36,14 +34,7 @@ pub async fn route(
         Err(_) => {
             return ApiResponse {
                 status: StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
-                result: ApiResult {
-                    success: false,
-                    data: Session {
-                        session_token: String::new(),
-                        expiry: -1,
-                    },
-                    msg: "Failed to connect to the library server.".to_string(),
-                },
+                body: ApiResponseBody::Text("Failed to connect to the library server.".to_string()),
             };
         }
         Ok(response) => (
@@ -54,17 +45,10 @@ pub async fn route(
 
     let session_token = match get_token_from_headers(login_response_headers) {
         Some(token) => token,
-        None => {
+        _ => {
             return ApiResponse {
                 status: StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
-                result: ApiResult {
-                    success: false,
-                    data: Session {
-                        session_token: String::new(),
-                        expiry: -1,
-                    },
-                    msg: "Failed to get session token.".to_string(),
-                },
+                body: ApiResponseBody::Text("Failed to get session token.".to_string()),
             };
         }
     };
@@ -76,7 +60,7 @@ pub async fn route(
             .attr("value")
             .unwrap_or_default()
             .to_string(),
-        None => String::new(),
+        _ => String::new(),
     };
 
     let form_body = reqwest::multipart::Form::new()
@@ -99,31 +83,21 @@ pub async fn route(
         Err(_) => false,
         Ok(res) => res.status() == StatusCode::RESET_CONTENT,
     };
-    let (session, status, msg) = if success {
-        (
-            Session {
-                session_token,
-                expiry,
-            },
-            StatusCode::OK.as_u16(),
-            String::new(),
-        )
+    if success {
+        let session = Session {
+            session_token,
+            expiry,
+        };
+        ApiResponse {
+            status: StatusCode::OK.as_u16(),
+            body: ApiResponseBody::Session(session),
+        }
     } else {
-        (
-            Session {
-                session_token: String::new(),
-                expiry: -1,
-            },
-            StatusCode::UNAUTHORIZED.as_u16(),
-            "Login details seem to be incorrect.".to_string(),
-        )
-    };
-    let result = ApiResult {
-        success,
-        data: session,
-        msg,
-    };
-    ApiResponse { status, result }
+        ApiResponse {
+            status: StatusCode::UNAUTHORIZED.as_u16(),
+            body: ApiResponseBody::Text("Login details seem to be incorrect.".to_string()),
+        }
+    }
 }
 
 #[derive(serde::Deserialize, serde::Serialize, ToSchema)]
@@ -147,7 +121,7 @@ fn get_token_from_headers(headers: reqwest::header::HeaderMap) -> Option<String>
         .unwrap_or_default();
     let token_start = match session_cookie.find("VUFIND_SESSION=") {
         Some(start) => start + 15, // 15 == "VUFIND_SESSION=".len()
-        None => return None,
+        _ => return None,
     };
     let token_end = session_cookie.find(';').unwrap_or(session_cookie.len());
     Some(session_cookie[token_start..token_end].to_string())

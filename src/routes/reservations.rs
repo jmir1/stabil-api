@@ -6,29 +6,34 @@ use axum::{
 use crate::{
     scraping::{
         libraries::to_library,
-        models::{ApiResponse, ApiResult, Location, Medium, Reservation, Volume},
+        models::{
+            ApiResponse,
+            ApiResponseBody::{Reservations, Text},
+            Location, Medium, Reservation, Volume,
+        },
         utils::{get_medium_ppn_from_id, is_logged_in, Select},
     },
     SessionTokenQuery,
 };
 
-use super::get_checked_out::get_bar;
+use super::checked_out::get_bar;
 
 #[utoipa::path(
+    operation_id = "get_reservations",
     get,
     path = "/reservations",
     responses(
-        (status = 200, description = "Reserved items", body = ApiResult<Vec<Reservation>>),
+        (status = 200, description = "Reserved items", body = Vec<Reservation>),
         (status = 400, description = "Bad request", body = String),
         (status = 401, description = "Unauthorized", body = String),
     ),
     security(("session_token" = [])),
 )]
 #[worker::send]
-pub async fn route(
+pub async fn get(
     State(state): State<crate::State>,
     query: Query<SessionTokenQuery>,
-) -> ApiResponse<Vec<Reservation>> {
+) -> ApiResponse {
     let session_token = match &query.session_token {
         Some(token) => token,
         None => return default_route(),
@@ -43,25 +48,16 @@ pub async fn route(
         Err(_) => {
             return ApiResponse {
                 status: StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
-                result: ApiResult {
-                    success: false,
-                    data: vec![],
-                    msg: "Failed to connect to the library server.".to_string(),
-                },
+                body: Text("Failed to connect to the library server.".to_string()),
             };
         }
         Ok(response) => response.text().await.unwrap_or_default(),
     };
     let document = scraper::Html::parse_document(&response_text);
     if !is_logged_in(&document) {
-        let result = ApiResult::<Vec<Reservation>> {
-            success: false,
-            data: vec![],
-            msg: "session_token is invalid.".to_string(),
-        };
         return ApiResponse {
             status: StatusCode::UNAUTHORIZED.as_u16(),
-            result,
+            body: Text("session_token is invalid.".to_string()),
         };
     }
 
@@ -110,14 +106,9 @@ pub async fn route(
 
         reservations.push(Reservation { volume, due_date });
     }
-    let result = ApiResult {
-        success: true,
-        data: reservations,
-        msg: String::new(),
-    };
     ApiResponse {
         status: StatusCode::OK.as_u16(),
-        result,
+        body: Reservations(reservations),
     }
 }
 
@@ -128,15 +119,10 @@ fn get_column_value(reservation: scraper::ElementRef, column: &str) -> String {
     }
 }
 
-pub fn default_route() -> ApiResponse<Vec<Reservation>> {
+pub fn default_route() -> ApiResponse {
     let msg = "This route needs a session_token query parameter.".to_string();
-    let result = ApiResult {
-        success: false,
-        data: vec![],
-        msg,
-    };
     ApiResponse {
         status: StatusCode::BAD_REQUEST.as_u16(),
-        result,
+        body: Text(msg),
     }
 }

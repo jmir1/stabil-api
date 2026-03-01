@@ -6,28 +6,29 @@ use axum::{
 
 use crate::{
     scraping::{
-        models::{ApiResponse, ApiResult, Reservation, SessionTokenQuery},
+        models::{ApiResponse, ApiResponseBody, Reservation, SessionTokenQuery},
         utils::{is_logged_in, Select},
     },
     ReservationData,
 };
 
 #[utoipa::path(
-    get,
+    operation_id = "post_make_reservation",
+    post,
     path = "/make_reservation",
     responses(
-        (status = 200, description = "Reserved items", body = ApiResult<Vec<Reservation>>),
+        (status = 200, description = "Reserved items", body = Vec<Reservation>),
         (status = 400, description = "Bad request", body = String),
         (status = 401, description = "Unauthorized", body = String),
     ),
     security(("session_token" = [])),
 )]
 #[worker::send]
-pub async fn route(
+pub async fn post(
     State(state): State<crate::State>,
     query: Query<SessionTokenQuery>,
     data: Json<ReservationData>,
-) -> ApiResponse<bool> {
+) -> ApiResponse {
     let session_token = match &query.session_token {
         Some(token) => token,
         None => return default_route(),
@@ -57,38 +58,24 @@ pub async fn route(
         Err(_) => {
             return ApiResponse {
                 status: StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
-                result: ApiResult {
-                    success: false,
-                    data: false,
-                    msg: "Failed to connect to the library server.".to_string(),
-                },
+                body: ApiResponseBody::Text("Failed to connect to the library server.".to_string()),
             };
         }
         Ok(response) => response,
     };
     let status = response.status();
     if status == StatusCode::FOUND {
-        let result = ApiResult {
-            success: true,
-            data: true,
-            msg: "Reservation successful.".to_string(),
-        };
         return ApiResponse {
             status: StatusCode::OK.as_u16(),
-            result,
+            body: ApiResponseBody::Text("Reservation successful.".to_string()),
         };
     } else {
         let text = response.text().await.unwrap_or_default();
         let document = scraper::Html::parse_document(&text);
         if !is_logged_in(&document) {
-            let result = ApiResult {
-                success: false,
-                data: false,
-                msg: "session_token is invalid.".to_string(),
-            };
             return ApiResponse {
                 status: StatusCode::UNAUTHORIZED.as_u16(),
-                result,
+                body: ApiResponseBody::Text("session_token is invalid.".to_string()),
             };
         }
         let message_element = document.select_first("div[role=alert]");
@@ -96,27 +83,17 @@ pub async fn route(
             Some(element) => element.text().next().unwrap_or("Reservation unsuccessful."),
             None => "Reservation unsuccessful.",
         };
-        let result = ApiResult {
-            success: false,
-            data: false,
-            msg: message.to_string(),
-        };
         return ApiResponse {
             status: StatusCode::BAD_REQUEST.as_u16(),
-            result,
+            body: ApiResponseBody::Text(message.to_string()),
         };
     }
 }
 
-pub fn default_route() -> ApiResponse<bool> {
+pub fn default_route() -> ApiResponse {
     let msg = "This route needs a session_token query parameter.".to_string();
-    let result = ApiResult {
-        success: false,
-        data: false,
-        msg,
-    };
     ApiResponse {
         status: StatusCode::BAD_REQUEST.as_u16(),
-        result,
+        body: ApiResponseBody::Text(msg),
     }
 }

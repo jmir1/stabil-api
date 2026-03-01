@@ -8,7 +8,7 @@ use axum::{
 use utoipa::ToSchema;
 
 use crate::scraping::{
-    models::{ApiResponse, ApiResult, SessionTokenQuery},
+    models::{ApiResponse, ApiResponseBody, SessionTokenQuery},
     utils::{is_logged_in, Select},
 };
 
@@ -18,22 +18,23 @@ pub struct CancelReservationData {
 }
 
 #[utoipa::path(
+  operation_id = "post_cancel_reservations",
   post,
   path = "/cancel_reservations",
   request_body = CancelReservationData,
   responses(
-    (status = 200, description = "Reservations canceled successfully", body = ApiResult<bool>),
+    (status = 200, description = "Reservations canceled successfully", body = String),
     (status = 400, description = "Bad request", body = String),
     (status = 401, description = "Unauthorized", body = String),
   ),
   security(("session_token" = [])),
 )]
 #[worker::send]
-pub async fn route(
+pub async fn post(
     State(state): State<crate::State>,
     query: Query<SessionTokenQuery>,
     Json(data): Json<CancelReservationData>,
-) -> ApiResponse<bool> {
+) -> ApiResponse {
     let session_token = match &query.session_token {
         Some(token) => token,
         None => return default_route(),
@@ -60,11 +61,7 @@ pub async fn route(
         Err(_) => {
             return ApiResponse {
                 status: StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
-                result: ApiResult {
-                    success: false,
-                    data: false,
-                    msg: "Failed to connect to the library server.".to_string(),
-                },
+                body: ApiResponseBody::Text("Failed to connect to the library server.".to_string()),
             };
         }
         Ok(response) => response,
@@ -74,14 +71,9 @@ pub async fn route(
     let document = scraper::Html::parse_document(&response_text);
 
     if !is_logged_in(&document) {
-        let result = ApiResult {
-            success: false,
-            data: false,
-            msg: "session_token is invalid.".to_string(),
-        };
         return ApiResponse {
             status: StatusCode::UNAUTHORIZED.as_u16(),
-            result,
+            body: ApiResponseBody::Text("session_token is invalid.".to_string()),
         };
     }
 
@@ -92,37 +84,22 @@ pub async fn route(
         .to_string();
 
     if alert_message.contains("erfolgreich storniert") {
-        let result = ApiResult {
-            success: true,
-            data: true,
-            msg: "Reservations canceled successfully.".to_string(),
-        };
         ApiResponse {
             status: StatusCode::OK.as_u16(),
-            result,
+            body: ApiResponseBody::Text("Reservations canceled successfully.".to_string()),
         }
     } else {
-        let result = ApiResult {
-            success: false,
-            data: false,
-            msg: alert_message,
-        };
         ApiResponse {
             status: StatusCode::BAD_REQUEST.as_u16(),
-            result,
+            body: ApiResponseBody::Text(alert_message),
         }
     }
 }
 
-pub fn default_route() -> ApiResponse<bool> {
+pub fn default_route() -> ApiResponse {
     let msg = "This route needs a session_token query parameter.".to_string();
-    let result = ApiResult {
-        success: false,
-        data: false,
-        msg,
-    };
     ApiResponse {
         status: StatusCode::BAD_REQUEST.as_u16(),
-        result,
+        body: ApiResponseBody::Text(msg),
     }
 }

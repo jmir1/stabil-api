@@ -17,7 +17,7 @@ pub struct Medium {
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct Volume {
     pub medium: Medium,
-    pub bar: String,
+    pub bar: Option<i32>,
     pub signature: String,
     pub location: Location,
 }
@@ -69,26 +69,66 @@ pub struct Location {
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
-pub struct ApiResult<T> {
-    pub success: bool,
-    pub data: T,
-    pub msg: String,
+pub enum ApiResponseBody {
+    Session(Session),
+    CheckedOut(Vec<CheckedOut>),
+    Reservations(Vec<Reservation>),
+    Mediums(Vec<Medium>),
+    Text(String),
+    Number(i32),
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
-pub struct ApiResponse<T> {
+pub struct ApiResponse {
     pub status: u16,
-    pub result: ApiResult<T>,
+    pub body: ApiResponseBody,
 }
 
-impl<T: Serialize> axum::response::IntoResponse for ApiResponse<T> {
+impl axum::response::IntoResponse for ApiResponse {
     fn into_response(self) -> axum::http::Response<axum::body::Body> {
-        let body = serde_json::to_string(&self.result).unwrap_or_default();
-        axum::http::Response::builder()
-            .status(self.status)
-            .header("Content-Type", "application/json")
-            .body(axum::body::Body::from(body))
-            .unwrap_or_default()
+        match self.body {
+            ApiResponseBody::Text(text) => axum::http::Response::builder()
+                .status(self.status)
+                .header("Content-Type", "text/plain")
+                .body(axum::body::Body::from(text))
+                .unwrap_or_default(),
+            ApiResponseBody::Number(number) => axum::http::Response::builder()
+                .status(self.status)
+                .header("Content-Type", "text/plain")
+                .body(axum::body::Body::from(number.to_string()))
+                .unwrap_or_default(),
+            ApiResponseBody::Session(session) => {
+                let json = serde_json::to_string(&session).unwrap_or_default();
+                axum::http::Response::builder()
+                    .status(self.status)
+                    .header("Content-Type", "application/json")
+                    .body(axum::body::Body::from(json))
+                    .unwrap_or_default()
+            }
+            ApiResponseBody::CheckedOut(checked_out) => {
+                let json = serde_json::to_string(&checked_out).unwrap_or_default();
+                axum::http::Response::builder()
+                    .status(self.status)
+                    .header("Content-Type", "application/json")
+                    .body(axum::body::Body::from(json))
+                    .unwrap_or_default()
+            }
+            ApiResponseBody::Reservations(reservations) => {
+                let json = serde_json::to_string(&reservations).unwrap_or_default();
+                axum::http::Response::builder()
+                    .status(self.status)
+                    .header("Content-Type", "application/json")
+                    .body(axum::body::Body::from(json))
+                    .unwrap_or_default()
+            }
+            ApiResponseBody::Mediums(mediums) => {
+                let json = serde_json::to_string(&mediums).unwrap_or_default();
+                axum::http::Response::builder()
+                    .status(self.status)
+                    .header("Content-Type", "application/json")
+                    .body(axum::body::Body::from(json))
+                    .unwrap_or_default()
+            }
+        }
     }
 }
 

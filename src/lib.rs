@@ -18,13 +18,14 @@ mod scraping;
 #[derive(OpenApi)]
 #[openapi(
         paths(
-            routes::get_index::route,
-            routes::post_session_token::route,
-            routes::get_checked_out::route,
-            routes::get_ppn_from_bar::route,
-            routes::get_reservations::route,
-            routes::post_make_reservation::route,
-            routes::post_cancel_reservations::route,
+            routes::cancel_reservations::post,
+            routes::checked_out::get,
+            routes::index::get,
+            routes::make_reservation::post,
+            routes::ppn_from_bar::get,
+            routes::reservations::get,
+            routes::search::get,
+            routes::session_token::post,
         ),
         components(
             schemas(
@@ -36,13 +37,7 @@ mod scraping;
                 Status,
                 Reservation,
                 Library,
-                ApiResult<bool>,
-                ApiResult<Option<i32>>,
-                ApiResult<Session>,
-                ApiResult<Vec<CheckedOut>>,
-                ApiResult<Vec<Reservation>>,
-                ApiResult<Vec<Medium>>,
-                routes::post_session_token::LoginData,
+                routes::session_token::LoginData,
             ),
         ),
         modifiers(&SecurityAddon),
@@ -82,20 +77,17 @@ pub fn router() -> Router {
     };
     Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
-        .route("/", get(routes::get_index::route))
-        .route("/session_token", post(routes::post_session_token::route))
-        .route("/checked_out", get(routes::get_checked_out::route))
-        .route("/ppn_from_bar", get(routes::get_ppn_from_bar::route))
-        .route("/reservations", get(routes::get_reservations::route))
-        .route("/search", get(routes::get_search::route))
+        .route("/", get(routes::index::get))
+        .route("/session_token", post(routes::session_token::post))
+        .route("/checked_out", get(routes::checked_out::get))
+        .route("/ppn_from_bar", get(routes::ppn_from_bar::get))
+        .route("/reservations", get(routes::reservations::get))
+        .route("/search", get(routes::search::get))
         .route(
             "/cancel_reservations",
-            post(routes::post_cancel_reservations::route),
+            post(routes::cancel_reservations::post),
         )
-        .route(
-            "/make_reservation",
-            post(routes::post_make_reservation::route),
-        )
+        .route("/make_reservation", post(routes::make_reservation::post))
         .with_state(state)
 }
 /*
