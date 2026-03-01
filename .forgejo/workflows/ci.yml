@@ -33,6 +33,9 @@ jobs:
         with:
           components: clippy
 
+      - name: Install yaz-rs dependencies
+        run: sudo apt-get update && sudo apt-get install -y libyaz-dev libclang-19-dev
+
       - name: cargo clippy
         continue-on-error: true
         run: cargo clippy -- -D warnings
@@ -46,8 +49,8 @@ jobs:
       - name: Install rust toolchain
         uses: https://github.com/dtolnay/rust-toolchain@stable
 
-      - name: Install yaz
-        run: sudo apt update && sudo apt install -y libyaz-dev
+      - name: Install yaz-rs dependencies
+        run: sudo apt-get update && sudo apt-get install -y libyaz-dev libclang-19-dev
 
       - name: cargo check
         run: cargo check
